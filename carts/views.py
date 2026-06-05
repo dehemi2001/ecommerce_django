@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import redirect
 from django.shortcuts import render
 from store.models import Product
@@ -33,8 +34,6 @@ def add_cart(request, product_id):
             cart = cart
         )
         cart_item.save()
-    return HttpResponse(cart_item.quantity)
-    exit()
     return redirect('cart')
 
 def cart(request, total=0, quantity=0, cart_items=None):
@@ -44,8 +43,8 @@ def cart(request, total=0, quantity=0, cart_items=None):
         for cart_item in cart_items:
             total += (cart_item.product.price * cart_item.quantity)
             quantity += cart_item.quantity
-    except ObjectNotExist:
-        pass
+    except ObjectDoesNotExist:
+        pass # just ignore
 
     context = {
         'total': total,
