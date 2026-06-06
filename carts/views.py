@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import redirect, get_object_or_404
 from django.shortcuts import render
@@ -13,6 +14,9 @@ def _cart_id(request):
     return cart
 
 def add_cart(request, product_id):
+    color = request.GET['color']
+    size = request.GET['size']
+    return HttpResponse(color + ' ' + size)
     product = Product.objects.get(id=product_id) # get the product
     try:
         cart = Cart.objects.get(cart_id=_cart_id(request)) # get the cart using the cart_id present in the session
