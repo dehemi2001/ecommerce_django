@@ -11,17 +11,19 @@
                 <aside class="col-md-6">
                     <article class="gallery-wrap">
                         <div class="img-big-wrap mainImage">
-                            <center><img src="{{ single_product.images.url }}"></center>
+                            <div class="text-center"><img src="{{ single_product.images.url }}"></div>
                         </div> <!-- img-big-wrap.// -->
 
                     </article> <!-- gallery-wrap .end// -->
-                    <ul class="thumb">
-                        <li>
-                            <a href="{{ single_product.images.url }}" target="mainImage"><img src="{{ single_product.images.url }}" alt="Product Image"></a>
-                            {% for i in product_gallery %}
-                            <a href="{{ i.image.url}}" target="mainImage"><img src="{{ i.image.url }}" alt="Product Image"></a>
-                            {% endfor %}
+                    <ul class="thumb list-inline mt-3 text-center">
+                        <li class="list-inline-item">
+                            <a href="{{ single_product.images.url }}" target="mainImage"><img src="{{ single_product.images.url }}" alt="Product Image" style="width: 80px; height: 80px; object-fit: cover; border: 1px solid #ddd;"></a>
                         </li>
+                        {% for i in product_gallery %}
+                        <li class="list-inline-item">
+                            <a href="{{ i.image.url}}" target="mainImage"><img src="{{ i.image.url }}" alt="Product Image" style="width: 80px; height: 80px; object-fit: cover; border: 1px solid #ddd;"></a>
+                        </li>
+                        {% endfor %}
                     </ul>
                 </aside>
                 <main class="col-md-6 border-left">
@@ -94,7 +96,6 @@
         </div> <!-- card.// -->
         <!-- ============================ COMPONENT 1 END .// ================================= -->
 
-        {% block scripts %}
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const variationSelects = document.querySelectorAll('.item-option-select select[name]');
@@ -163,7 +164,6 @@
                 });
             });
         </script>
-        {% endblock %}
 
         <br>
 
