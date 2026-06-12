@@ -151,5 +151,6 @@ def get_variation_stock(request):
     configuration = configurations_qs.filter(num_variations=len(variation_objs)).first()
 
     stock = configuration.stock if configuration else 0
+    price = configuration.price if configuration else product.price
     message = f"In Stock: {stock}" if stock > 0 else "Out of Stock"
-    return JsonResponse({'stock': stock, 'message': message})
+    return JsonResponse({'stock': stock, 'price': price, 'message': message})

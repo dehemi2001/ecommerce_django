@@ -1,6 +1,7 @@
 from accounts.models import Account
 from django.db import models
-from store.models import Product, Variation
+from store.models import Product, Variation, ProductConfiguration
+from django.db.models import Count
 
 # Create your models here.
 
@@ -19,8 +20,17 @@ class CartItem(models.Model):
     quantity = models.IntegerField()
     is_active = models.BooleanField(default=True)
 
+    @property
+    def price(self):
+        variations = self.variations.all()
+        configs = ProductConfiguration.objects.filter(product=self.product, is_active=True).annotate(v_count=Count('variations', distinct=True)).filter(v_count=len(variations))
+        for var in variations:
+            configs = configs.filter(variations=var)
+        config = configs.first()
+        return config.price if config else self.product.price
+
     def sub_total(self):
-        return self.product.price * self.quantity
+        return self.price * self.quantity
 
     def __unicode__(self):
         return self.product

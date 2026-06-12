@@ -40,7 +40,7 @@ def payments(request):
         orderproduct.user_id = request.user.id
         orderproduct.product_id = item.product_id
         orderproduct.quantity = item.quantity
-        orderproduct.product_price = item.product.price
+        orderproduct.product_price = item.price
         orderproduct.ordered = True
         orderproduct.save()
 
@@ -93,7 +93,7 @@ def place_order(request, total=0, quantity=0,):
     grand_total = 0
     tax = 0
     for cart_item in cart_items:
-        total += (cart_item.product.price * cart_item.quantity)
+        total += (cart_item.price * cart_item.quantity)
         quantity += cart_item.quantity
     tax = (2 * total)/100
     grand_total = total + tax

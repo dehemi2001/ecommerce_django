@@ -10,7 +10,6 @@ class Product(models.Model):
     product_name = models.CharField(max_length=200, unique=True)
     slug = models.SlugField(max_length=200, unique=True)
     description = models.TextField(max_length=500, blank=True)
-    price = models.IntegerField()
     images = models.ImageField(upload_to='photos/products')
     is_available = models.BooleanField(default=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
@@ -19,6 +18,11 @@ class Product(models.Model):
 
     def get_url(self):
         return reverse('product_detail', args=[self.category.slug, self.slug])
+
+    @property
+    def price(self):
+        configs = ProductConfiguration.objects.filter(product=self, is_active=True).aggregate(min_price=models.Min('price'))
+        return configs['min_price'] or 0
 
     @property
     def total_stock(self):
@@ -70,6 +74,7 @@ class ProductConfiguration(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='configurations')
     variations = models.ManyToManyField(Variation)
     stock = models.IntegerField(default=0)
+    price = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True)
