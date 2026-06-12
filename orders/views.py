@@ -4,9 +4,10 @@ from django.shortcuts import render, redirect
 from carts.models import CartItem
 from .forms import OrderForm
 import datetime
+from django.db.models import Count
 from .models import Order, Payment, OrderProduct
 import json
-from store.models import Product
+from store.models import Product, ProductConfiguration
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 
@@ -43,16 +44,21 @@ def payments(request):
         orderproduct.ordered = True
         orderproduct.save()
 
-        cart_item = CartItem.objects.get(id=item.id)
-        product_variation = cart_item.variations.all()
+        product_variation = item.variations.all()
         orderproduct = OrderProduct.objects.get(id=orderproduct.id)
         orderproduct.variations.set(product_variation)
         orderproduct.save()
-
-        # Reduce the quantity of the sold products
-        product = Product.objects.get(id=item.product_id)
-        product.stock -= orderproduct.quantity
-        product.save()
+        
+        # Reduce the quantity of the specific configuration sold
+        configurations = ProductConfiguration.objects.filter(product=item.product)
+        for v in product_variation:
+            configurations = configurations.filter(variations=v)
+        
+        configuration = configurations.annotate(v_count=Count('variations', distinct=True)).filter(v_count=len(product_variation)).first() # Ensure distinct=True is here
+        
+        if configuration:
+            configuration.stock -= item.quantity
+            configuration.save()
 
     # Clear cart
     CartItem.objects.filter(user=request.user).delete()

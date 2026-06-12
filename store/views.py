@@ -1,7 +1,7 @@
 from orders.models import OrderProduct
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404
-from store.models import Product, ReviewRating, ProductGallery
+from store.models import Product, ReviewRating, ProductGallery, Variation, ProductConfiguration
 from django.contrib import messages
 from django.shortcuts import redirect
 from category.models import Category
@@ -9,6 +9,8 @@ from django.db.models import Q
 from carts.views import _cart_id
 from carts.models import CartItem
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.http import JsonResponse
+from django.db.models import Count
 from .forms import ReviewForm
 
 # Create your views here.
@@ -101,3 +103,53 @@ def submit_review(request, product_id):
                 data.save()
                 messages.success(request, 'Thank you! Your review has been submitted.')
                 return redirect(url)
+
+def get_variation_stock(request):
+    if request.method != 'GET':
+        return JsonResponse({'stock': 0, 'message': 'Invalid request method.'}, status=405)
+
+    product_id = request.GET.get('product_id')
+    if not product_id:
+        return JsonResponse({'stock': 0, 'message': 'Product ID missing.'}, status=400)
+
+    # Collect variation parameters from request, ignoring empty values and CSRF token
+    selected_variations = {}
+    for key, value in request.GET.items():
+        if key in ['product_id', 'csrfmiddlewaretoken'] or not value:
+            continue
+        selected_variations[key] = value.strip()
+
+    if not selected_variations:
+        return JsonResponse({'stock': 0, 'message': 'Please select all variations.'}, status=400)
+
+    try:
+        product = Product.objects.get(id=product_id)
+    except Product.DoesNotExist:
+        return JsonResponse({'stock': 0, 'message': 'Product not found.'}, status=404)
+
+    # Retrieve the Variation objects matching the selected criteria
+    variation_objs = []
+    for category, val in selected_variations.items():
+        try:
+            variation = Variation.objects.get(
+                product=product,
+                variation_category__iexact=category,
+                variation_value__iexact=val,
+            )
+            variation_objs.append(variation)
+        except Variation.DoesNotExist:
+            return JsonResponse({'stock': 0, 'message': f'Selected variation not found: {category}={val}.'}, status=404)
+
+    # Filter configurations that contain all selected variations
+    configurations_qs = ProductConfiguration.objects.filter(
+        product=product,
+        is_active=True,
+        variations__in=variation_objs,
+    ).annotate(num_variations=Count('variations', distinct=True))
+
+    # Ensure the configuration has exactly the same number of variations as selected
+    configuration = configurations_qs.filter(num_variations=len(variation_objs)).first()
+
+    stock = configuration.stock if configuration else 0
+    message = f"In Stock: {stock}" if stock > 0 else "Out of Stock"
+    return JsonResponse({'stock': stock, 'message': message})

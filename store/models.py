@@ -12,7 +12,6 @@ class Product(models.Model):
     description = models.TextField(max_length=500, blank=True)
     price = models.IntegerField()
     images = models.ImageField(upload_to='photos/products')
-    stock = models.IntegerField()
     is_available = models.BooleanField(default=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     created_date = models.DateTimeField(auto_now_add=True)
@@ -20,6 +19,11 @@ class Product(models.Model):
 
     def get_url(self):
         return reverse('product_detail', args=[self.category.slug, self.slug])
+
+    @property
+    def total_stock(self):
+        configurations = ProductConfiguration.objects.filter(product=self, is_active=True)
+        return sum(config.stock for config in configurations)
 
     def __str__(self):
         return self.product_name
@@ -42,12 +46,12 @@ class VariationManager(models.Manager):
     def colors(self):
         return super(VariationManager, self).filter(variation_category='color', is_active=True)
 
-    def sizes(self):
-        return super(VariationManager, self).filter(variation_category='size', is_active=True)
+    def specifications(self):
+        return super(VariationManager, self).filter(variation_category='specification', is_active=True)
 
 variation_category_choice = (
     ('color', 'color'),
-    ('size', 'size'),
+    ('specification', 'specification'),
 )
 
 class Variation(models.Model):
@@ -60,7 +64,18 @@ class Variation(models.Model):
     objects = VariationManager()
 
     def __str__(self):
-        return self.variation_value
+        return f"{self.variation_category}: {self.variation_value}"
+
+class ProductConfiguration(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='configurations')
+    variations = models.ManyToManyField(Variation)
+    stock = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_date = models.DateTimeField(auto_now_add=True)
+    updated_date = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.product.product_name} Config"
 
 class ReviewRating(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
