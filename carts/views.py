@@ -32,12 +32,13 @@ def add_cart(request, product_id):
                 pass
 
     # Find the specific configuration matching these variations
-    configurations = ProductConfiguration.objects.filter(product=product, is_active=True)
+    configurations = ProductConfiguration.objects.annotate(
+        v_count=Count('variations', distinct=True)
+    ).filter(product=product, is_active=True, v_count=len(product_variation))
     for v in product_variation:
         configurations = configurations.filter(variations=v)
     
-    # Ensure exact match (same number of variations)
-    configuration = configurations.annotate(v_count=Count('variations', distinct=True)).filter(v_count=len(product_variation)).first()
+    configuration = configurations.first()
 
     if not configuration or configuration.stock <= 0:
         messages.error(request, "Sorry, this specific combination is currently out of stock.")

@@ -140,15 +140,14 @@ def get_variation_stock(request):
         except Variation.DoesNotExist:
             return JsonResponse({'stock': 0, 'message': f'Selected variation not found: {category}={val}.'}, status=404)
 
-    # Filter configurations that contain all selected variations
-    configurations_qs = ProductConfiguration.objects.filter(
-        product=product,
-        is_active=True,
-        variations__in=variation_objs,
-    ).annotate(num_variations=Count('variations', distinct=True))
+    # Filter configurations that contain all selected variations and have the exact same number of variations
+    configurations_qs = ProductConfiguration.objects.annotate(
+        v_count=Count('variations', distinct=True)
+    ).filter(product=product, is_active=True, v_count=len(variation_objs))
+    for v in variation_objs:
+        configurations_qs = configurations_qs.filter(variations=v)
 
-    # Ensure the configuration has exactly the same number of variations as selected
-    configuration = configurations_qs.filter(num_variations=len(variation_objs)).first()
+    configuration = configurations_qs.first()
 
     stock = configuration.stock if configuration else 0
     price = configuration.price if configuration else product.price

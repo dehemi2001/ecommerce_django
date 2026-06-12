@@ -23,7 +23,9 @@ class CartItem(models.Model):
     @property
     def price(self):
         variations = self.variations.all()
-        configs = ProductConfiguration.objects.filter(product=self.product, is_active=True).annotate(v_count=Count('variations', distinct=True)).filter(v_count=len(variations))
+        configs = ProductConfiguration.objects.annotate(
+            v_count=Count('variations', distinct=True)
+        ).filter(product=self.product, is_active=True, v_count=len(variations))
         for var in variations:
             configs = configs.filter(variations=var)
         config = configs.first()

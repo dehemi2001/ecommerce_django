@@ -50,11 +50,13 @@ def payments(request):
         orderproduct.save()
         
         # Reduce the quantity of the specific configuration sold
-        configurations = ProductConfiguration.objects.filter(product=item.product)
+        configurations = ProductConfiguration.objects.annotate(
+            v_count=Count('variations', distinct=True)
+        ).filter(product=item.product, v_count=len(product_variation))
         for v in product_variation:
             configurations = configurations.filter(variations=v)
         
-        configuration = configurations.annotate(v_count=Count('variations', distinct=True)).filter(v_count=len(product_variation)).first() # Ensure distinct=True is here
+        configuration = configurations.first()
         
         if configuration:
             configuration.stock -= item.quantity
