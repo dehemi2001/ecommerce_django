@@ -79,6 +79,26 @@ class ProductConfiguration(models.Model):
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True)
 
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        # Skip validation for unsaved objects; many‑to‑many relations are unavailable until the object has a primary key.
+        if not self.pk:
+            return
+        # Ensure exactly two variations: one color and one specification
+        variation_qs = self.variations.all()
+        if variation_qs.count() != 2:
+            raise ValidationError('A product configuration must have exactly one color and one specification variation.')
+        categories = set(v.variation_category for v in variation_qs)
+        if categories != {'color', 'specification'}:
+            raise ValidationError('Variations must include one color and one specification.')
+        # Check for duplicate configuration for the same product
+        existing = ProductConfiguration.objects.filter(product=self.product, variations__in=variation_qs).distinct()
+        for config in existing:
+            if config.id != self.id:
+                other_vars = set(config.variations.all())
+                if other_vars == set(variation_qs):
+                    raise ValidationError('This combination of color and specification already exists for this product.')
+    
     def __str__(self):
         return f"{self.product.product_name} Config"
 

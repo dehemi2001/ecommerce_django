@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import Product, Variation, ReviewRating, ProductGallery, ProductConfiguration
 import admin_thumbnails
+from django import forms
 
 # Register your models here.
 
@@ -13,9 +14,33 @@ class VariationInline(admin.TabularInline):
     model = Variation
     extra = 1
 
-class ProductConfigurationInline(admin.TabularInline):
-    model = ProductConfiguration
-    extra = 1
+class ProductConfigurationForm(forms.ModelForm):
+    class Meta:
+        model = ProductConfiguration
+        fields = '__all__'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        variations = cleaned_data.get('variations')
+        if variations is None:
+            return cleaned_data
+        # Ensure exactly two variations
+        if variations.count() != 2:
+            raise forms.ValidationError('Select exactly one color and one specification.')
+        categories = set(v.variation_category for v in variations)
+        if categories != {'color', 'specification'}:
+            raise forms.ValidationError('Variations must include one color and one specification.')
+        # Check duplicate configuration
+        product = self.instance.product
+        if product:
+            existing = ProductConfiguration.objects.filter(product=product, variations__in=variations).distinct()
+            for cfg in existing:
+                if cfg.id != self.instance.id:
+                    other_vars = set(cfg.variations.all())
+                    if other_vars == set(variations):
+                        raise forms.ValidationError('This combination already exists for this product.')
+        return cleaned_data
+
     # This limits the variation choices to ONLY variations belonging to the current product
     def formfield_for_manytomany(self, db_field, request, **kwargs):
         if db_field.name == "variations":
@@ -25,6 +50,11 @@ class ProductConfigurationInline(admin.TabularInline):
             else:
                 kwargs["queryset"] = Variation.objects.none()
         return super().formfield_for_manytomany(db_field, request, **kwargs)
+
+class ProductConfigurationInline(admin.TabularInline):
+    model = ProductConfiguration
+    form = ProductConfigurationForm
+    extra = 1
 
 class ReviewRatingInline(admin.TabularInline):
     model = ReviewRating
