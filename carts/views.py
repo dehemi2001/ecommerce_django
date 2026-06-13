@@ -95,13 +95,11 @@ def get_cart_summary(request):
     except ObjectDoesNotExist:
         pass
 
-    tax = (2 * total) / 100
     return {
         'total': total,
         'quantity': quantity,
         'cart_items': cart_items,
-        'tax': tax,
-        'grand_total': total + tax,
+        'grand_total': total,
     }
 
 def cart(request, total=0, quantity=0, cart_items=None):
