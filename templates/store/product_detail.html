@@ -52,38 +52,27 @@
 
 
                             <hr>
+                            {% for attr_name, attr_values in single_product.attribute_groups.items %}
                             <div class="row">
                                 <div class="item-option-select">
-                                    <h6>Color</h6>
-                                    <select name="color" id="selectColor" class="form-control" required>
+                                    <h6>{{ attr_name }}</h6>
+                                    <select name="{{ attr_name|lower }}" class="form-control" required>
                                         <option value="" disabled selected>Select</option>
-                                        {% for i in single_product.available_colors %}
-                                        <option value="{{ i.value | lower }}">
-                                            {{ i.value | capfirst}}
+                                        {% for av in attr_values %}
+                                        <option value="{{ av.value | lower }}">
+                                            {{ av.value | capfirst}}
                                         </option>
                                         {% endfor %}
                                     </select>
                                 </div>
                             </div>
-                            <div class="row">
-                                <div class="item-option-select">
-                                    <h6>Specification</h6>
-                                    <select name="specification" id="selectSpecification" class="form-control">
-                                        <option value="" disabled selected>Select</option>
-                                        {% for i in single_product.available_specifications %}
-                                        <option value="{{ i.value | lower }}">
-                                            {{ i.value |capfirst}}
-                                        </option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            </div>
+                            {% endfor %}
                             <hr>
                             <div id="stockStatus" class="mb-3">
                                 {% if single_product.total_stock <= 0 %}
                                     <h5 class="text-danger">Out of Stock</h5>
                                 {% else %}
-                                    <h5 class="text-info">Please select color and specification.</h5>
+                                    <h5 class="text-info">Please select all options.</h5>
                                 {% endif %}
                             </div>
                             <button type="submit" class="btn btn-primary" id="addToCartButton" {% if single_product.total_stock <= 0 %}disabled{% endif %}>

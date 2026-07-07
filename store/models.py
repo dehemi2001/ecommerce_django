@@ -46,24 +46,32 @@ class Product(models.Model):
             count = int(reviews['count'])
         return count
 
-    # Global attribute helpers for templates
+    @property
+    def attribute_groups(self):
+        """
+        Returns a dict of {attribute_name: [attribute_values]} for active configurations.
+        Used by the product detail template to render dropdowns dynamically.
+        """
+        attrs = Attribute.objects.filter(
+            values__productconfiguration__product=self,
+            values__productconfiguration__is_active=True
+        ).distinct()
+        groups = {}
+        for attr in attrs:
+            groups[attr.name] = attr.values.filter(
+                productconfiguration__product=self,
+                productconfiguration__is_active=True
+            ).distinct()
+        return groups
+
+    # Backward-compatible aliases for templates that may still reference these
     @property
     def available_colors(self):
-        """Returns distinct global color attribute values used by this product's active configurations."""
-        return AttributeValue.objects.filter(
-            attribute__name__iexact='color',
-            productconfiguration__product=self,
-            productconfiguration__is_active=True
-        ).distinct()
+        return self.attribute_groups.get('Color', [])
 
     @property
     def available_specifications(self):
-        """Returns distinct global specification attribute values used by this product's active configurations."""
-        return AttributeValue.objects.filter(
-            attribute__name__iexact='specification',
-            productconfiguration__product=self,
-            productconfiguration__is_active=True
-        ).distinct()
+        return self.attribute_groups.get('Specification', [])
 
 
 class Attribute(models.Model):
@@ -103,23 +111,22 @@ class ProductConfiguration(models.Model):
         from django.core.exceptions import ValidationError
         if not self.pk:
             return
-        # Ensure exactly two attribute values: one color and one specification
         av_qs = self.attribute_values.all()
-        if av_qs.count() != 2:
-            raise ValidationError('A product configuration must have exactly one color and one specification attribute value.')
-        attribute_names = set(av.attribute.name.lower() for av in av_qs)
-        if attribute_names != {'color', 'specification'}:
-            raise ValidationError('Attribute values must include one color and one specification.')
+        # Ensure each attribute appears at most once
+        attribute_ids = set(av.attribute_id for av in av_qs)
+        if len(attribute_ids) != av_qs.count():
+            raise ValidationError('Each attribute can only have one value per configuration.')
         # Check for duplicate configuration for the same product
         existing = ProductConfiguration.objects.filter(product=self.product, attribute_values__in=av_qs).distinct()
         for config in existing:
             if config.id != self.id:
                 other_avs = set(config.attribute_values.all())
                 if other_avs == set(av_qs):
-                    raise ValidationError('This combination of color and specification already exists for this product.')
+                    raise ValidationError('This combination of attribute values already exists for this product.')
 
     def __str__(self):
-        return f"{self.product.product_name} Config"
+        attrs_list = ', '.join(str(av) for av in self.attribute_values.all())
+        return f"{self.product.product_name} ({attrs_list})"
 
 
 class ReviewRating(models.Model):
