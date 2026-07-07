@@ -47,11 +47,6 @@ class ProductConfigurationForm(forms.ModelForm):
             kwargs["queryset"] = AttributeValue.objects.all()
         return super().formfield_for_manytomany(db_field, request, **kwargs)
 
-class ProductConfigurationInline(admin.TabularInline):
-    model = ProductConfiguration
-    form = ProductConfigurationForm
-    extra = 1
-
 class ReviewRatingInline(admin.TabularInline):
     model = ReviewRating
     extra = 0
@@ -61,16 +56,34 @@ class ReviewRatingInline(admin.TabularInline):
 class ProductAdmin(admin.ModelAdmin):
     list_display = ('product_name', 'price', 'category', 'modified_date', 'is_available')
     prepopulated_fields = {'slug': ('product_name',)}
-
-    def get_inlines(self, request, obj=None):
-        # Base inlines available during product creation
-        inlines = [ProductGalleryInline, ReviewRatingInline]
-        # Only show Configuration (Stock) if the product has been saved
-        if obj:
-            inlines.insert(0, ProductConfigurationInline)
-        return inlines
+    inlines = [ProductGalleryInline, ReviewRatingInline]
 
 admin.site.register(Product, ProductAdmin)
+
+# Standalone admin for ProductConfiguration — manage all inventory in one place
+class ProductConfigurationAdmin(admin.ModelAdmin):
+    list_display = ('product_name_display', 'color_display', 'specification_display', 'stock', 'price', 'is_active', 'updated_date')
+    list_editable = ('stock', 'price', 'is_active')
+    list_filter = ('is_active', 'product')
+    search_fields = ('product__product_name',)
+    list_per_page = 25
+
+    def product_name_display(self, obj):
+        return obj.product.product_name
+    product_name_display.short_description = 'Product'
+    product_name_display.admin_order_field = 'product__product_name'
+
+    def color_display(self, obj):
+        color = obj.attribute_values.filter(attribute__name__iexact='color').first()
+        return color.value if color else '-'
+    color_display.short_description = 'Color'
+
+    def specification_display(self, obj):
+        spec = obj.attribute_values.filter(attribute__name__iexact='specification').first()
+        return spec.value if spec else '-'
+    specification_display.short_description = 'Specification'
+
+admin.site.register(ProductConfiguration, ProductConfigurationAdmin)
 
 # Register Attribute and AttributeValue as standalone models for global management
 class AttributeValueInlineAdmin(admin.TabularInline):
