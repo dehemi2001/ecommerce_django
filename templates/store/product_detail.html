@@ -57,9 +57,9 @@
                                     <h6>Color</h6>
                                     <select name="color" id="selectColor" class="form-control" required>
                                         <option value="" disabled selected>Select</option>
-                                        {% for i in single_product.variation_set.colors %}
-                                        <option value="{{ i.variation_value | lower }}">
-                                            {{ i.variation_value | capfirst}}
+                                        {% for i in single_product.available_colors %}
+                                        <option value="{{ i.value | lower }}">
+                                            {{ i.value | capfirst}}
                                         </option>
                                         {% endfor %}
                                     </select>
@@ -70,9 +70,9 @@
                                     <h6>Specification</h6>
                                     <select name="specification" id="selectSpecification" class="form-control">
                                         <option value="" disabled selected>Select</option>
-                                        {% for i in single_product.variation_set.specifications %}
-                                        <option value="{{ i.variation_value | lower }}">
-                                            {{ i.variation_value |capfirst}}
+                                        {% for i in single_product.available_specifications %}
+                                        <option value="{{ i.value | lower }}">
+                                            {{ i.value |capfirst}}
                                         </option>
                                         {% endfor %}
                                     </select>

@@ -68,9 +68,9 @@
                                             <tr>
                                                 <td>{{item.product.product_name}}
                                                 <p class="text-muted small">
-                                                {% if item.variations.all %}
-                                                {% for i in item.variations.all %}
-                                                {{ i.variation_category | capfirst }} : {{ i.variation_value | capfirst }}<br>
+                                                {% if item.attribute_values.all %}
+                                                {% for i in item.attribute_values.all %}
+                                                {{ i.attribute.name | capfirst }} : {{ i.value | capfirst }}<br>
                                                 {% endfor %}
                                                 {% endif %}
                                             </p>

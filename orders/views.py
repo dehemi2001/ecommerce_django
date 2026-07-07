@@ -44,17 +44,17 @@ def payments(request):
         orderproduct.ordered = True
         orderproduct.save()
 
-        product_variation = item.variations.all()
+        product_attribute_values = item.attribute_values.all()
         orderproduct = OrderProduct.objects.get(id=orderproduct.id)
-        orderproduct.variations.set(product_variation)
+        orderproduct.attribute_values.set(product_attribute_values)
         orderproduct.save()
         
         # Reduce the quantity of the specific configuration sold
         configurations = ProductConfiguration.objects.annotate(
-            v_count=Count('variations', distinct=True)
-        ).filter(product=item.product, v_count=len(product_variation))
-        for v in product_variation:
-            configurations = configurations.filter(variations=v)
+            av_count=Count('attribute_values', distinct=True)
+        ).filter(product=item.product, av_count=len(product_attribute_values))
+        for av in product_attribute_values:
+            configurations = configurations.filter(attribute_values=av)
         
         configuration = configurations.first()
         

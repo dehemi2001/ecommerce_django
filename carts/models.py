@@ -1,6 +1,6 @@
 from accounts.models import Account
 from django.db import models
-from store.models import Product, Variation, ProductConfiguration
+from store.models import Product, AttributeValue, ProductConfiguration
 from django.db.models import Count
 
 # Create your models here.
@@ -15,19 +15,19 @@ class Cart(models.Model):
 class CartItem(models.Model):
     user = models.ForeignKey(Account, on_delete=models.CASCADE, null=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    variations = models.ManyToManyField(Variation, blank=True)
+    attribute_values = models.ManyToManyField(AttributeValue, blank=True)
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, null=True)
     quantity = models.IntegerField()
     is_active = models.BooleanField(default=True)
 
     @property
     def price(self):
-        variations = self.variations.all()
+        avs = self.attribute_values.all()
         configs = ProductConfiguration.objects.annotate(
-            v_count=Count('variations', distinct=True)
-        ).filter(product=self.product, is_active=True, v_count=len(variations))
-        for var in variations:
-            configs = configs.filter(variations=var)
+            av_count=Count('attribute_values', distinct=True)
+        ).filter(product=self.product, is_active=True, av_count=len(avs))
+        for av in avs:
+            configs = configs.filter(attribute_values=av)
         config = configs.first()
         return config.price if config else self.product.price
 

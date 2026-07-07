@@ -2,7 +2,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import redirect, get_object_or_404
 from django.shortcuts import render
 from django.db.models import Count
-from store.models import Product, Variation, ProductConfiguration
+from store.models import Product, AttributeValue, ProductConfiguration
 from .models import Cart, CartItem
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -17,26 +17,26 @@ def _cart_id(request):
 
 def add_cart(request, product_id):
     product = get_object_or_404(Product, id=product_id)
-    product_variation = []
+    product_attribute_values = []
 
     if request.method == 'POST':
         for key, value in request.POST.items():
             try:
-                variation = Variation.objects.get(
-                    product=product, 
-                    variation_category__iexact=key.strip(), 
-                    variation_value__iexact=value.strip()
+                # Look up the global AttributeValue by attribute name and value
+                attribute_value = AttributeValue.objects.get(
+                    attribute__name__iexact=key.strip(), 
+                    value__iexact=value.strip()
                 )
-                product_variation.append(variation)
-            except Variation.DoesNotExist:
+                product_attribute_values.append(attribute_value)
+            except AttributeValue.DoesNotExist:
                 pass
 
-    # Find the specific configuration matching these variations
+    # Find the specific configuration matching these attribute values
     configurations = ProductConfiguration.objects.annotate(
-        v_count=Count('variations', distinct=True)
-    ).filter(product=product, is_active=True, v_count=len(product_variation))
-    for v in product_variation:
-        configurations = configurations.filter(variations=v)
+        av_count=Count('attribute_values', distinct=True)
+    ).filter(product=product, is_active=True, av_count=len(product_attribute_values))
+    for av in product_attribute_values:
+        configurations = configurations.filter(attribute_values=av)
     
     configuration = configurations.first()
 
@@ -54,11 +54,11 @@ def add_cart(request, product_id):
             cart = Cart.objects.create(cart_id=_cart_id(request))
         cart_items = CartItem.objects.filter(product=product, cart=cart)
 
-    # Check if a CartItem with the exact same variations already exists
+    # Check if a CartItem with the exact same attribute values already exists
     existing_item = None
     for item in cart_items:
         # Sort both lists by ID to ensure consistent comparison
-        if sorted(list(item.variations.all()), key=lambda x: x.id) == sorted(product_variation, key=lambda x: x.id):
+        if sorted(list(item.attribute_values.all()), key=lambda x: x.id) == sorted(product_attribute_values, key=lambda x: x.id):
             existing_item = item
             break
 
@@ -72,8 +72,8 @@ def add_cart(request, product_id):
             user=request.user if request.user.is_authenticated else None,
             cart=None if request.user.is_authenticated else cart
         )
-        if product_variation:
-            cart_item.variations.set(product_variation)
+        if product_attribute_values:
+            cart_item.attribute_values.set(product_attribute_values)
         cart_item.save()
 
     return redirect('cart')
@@ -135,4 +135,3 @@ def remove_cart_item(request, product_id, cart_item_id):
         cart_item = CartItem.objects.get(product=product, cart=cart, id=cart_item_id)
     cart_item.delete()
     return redirect('cart')
-

@@ -46,33 +46,53 @@ class Product(models.Model):
             count = int(reviews['count'])
         return count
 
-class VariationManager(models.Manager):
-    def colors(self):
-        return super(VariationManager, self).filter(variation_category='color', is_active=True)
+    # Global attribute helpers for templates
+    @property
+    def available_colors(self):
+        """Returns distinct global color attribute values used by this product's active configurations."""
+        return AttributeValue.objects.filter(
+            attribute__name__iexact='color',
+            productconfiguration__product=self,
+            productconfiguration__is_active=True
+        ).distinct()
 
-    def specifications(self):
-        return super(VariationManager, self).filter(variation_category='specification', is_active=True)
+    @property
+    def available_specifications(self):
+        """Returns distinct global specification attribute values used by this product's active configurations."""
+        return AttributeValue.objects.filter(
+            attribute__name__iexact='specification',
+            productconfiguration__product=self,
+            productconfiguration__is_active=True
+        ).distinct()
 
-variation_category_choice = (
-    ('color', 'color'),
-    ('specification', 'specification'),
-)
 
-class Variation(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    variation_category = models.CharField(max_length=100, choices=variation_category_choice)
-    variation_value = models.CharField(max_length=100)
-    is_active = models.BooleanField(default=True)
-    created_date = models.DateTimeField(auto_now=True)
-
-    objects = VariationManager()
+class Attribute(models.Model):
+    """Global attribute category (e.g. 'Color', 'RAM', 'Storage', 'Size')."""
+    name = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
-        return f"{self.variation_category}: {self.variation_value}"
+        return self.name
+
+    class Meta:
+        ordering = ['name']
+
+
+class AttributeValue(models.Model):
+    """Global attribute value (e.g. 'Black', '16GB', '512GB') linked to an Attribute."""
+    attribute = models.ForeignKey(Attribute, on_delete=models.CASCADE, related_name='values')
+    value = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"{self.attribute.name}: {self.value}"
+
+    class Meta:
+        ordering = ['attribute__name', 'value']
+        unique_together = ('attribute', 'value')
+
 
 class ProductConfiguration(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='configurations')
-    variations = models.ManyToManyField(Variation)
+    attribute_values = models.ManyToManyField(AttributeValue)
     stock = models.IntegerField(default=0)
     price = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
@@ -81,26 +101,26 @@ class ProductConfiguration(models.Model):
 
     def clean(self):
         from django.core.exceptions import ValidationError
-        # Skip validation for unsaved objects; many‑to‑many relations are unavailable until the object has a primary key.
         if not self.pk:
             return
-        # Ensure exactly two variations: one color and one specification
-        variation_qs = self.variations.all()
-        if variation_qs.count() != 2:
-            raise ValidationError('A product configuration must have exactly one color and one specification variation.')
-        categories = set(v.variation_category for v in variation_qs)
-        if categories != {'color', 'specification'}:
-            raise ValidationError('Variations must include one color and one specification.')
+        # Ensure exactly two attribute values: one color and one specification
+        av_qs = self.attribute_values.all()
+        if av_qs.count() != 2:
+            raise ValidationError('A product configuration must have exactly one color and one specification attribute value.')
+        attribute_names = set(av.attribute.name.lower() for av in av_qs)
+        if attribute_names != {'color', 'specification'}:
+            raise ValidationError('Attribute values must include one color and one specification.')
         # Check for duplicate configuration for the same product
-        existing = ProductConfiguration.objects.filter(product=self.product, variations__in=variation_qs).distinct()
+        existing = ProductConfiguration.objects.filter(product=self.product, attribute_values__in=av_qs).distinct()
         for config in existing:
             if config.id != self.id:
-                other_vars = set(config.variations.all())
-                if other_vars == set(variation_qs):
+                other_avs = set(config.attribute_values.all())
+                if other_avs == set(av_qs):
                     raise ValidationError('This combination of color and specification already exists for this product.')
-    
+
     def __str__(self):
         return f"{self.product.product_name} Config"
+
 
 class ReviewRating(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
@@ -115,6 +135,7 @@ class ReviewRating(models.Model):
     
     def __str__(self):
         return self.subject
+
 
 class ProductGallery(models.Model):
     product = models.ForeignKey(Product, default=None, on_delete=models.CASCADE)

@@ -1,7 +1,7 @@
 from orders.models import OrderProduct
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404
-from store.models import Product, ReviewRating, ProductGallery, Variation, ProductConfiguration
+from store.models import Product, ReviewRating, ProductGallery, AttributeValue, ProductConfiguration
 from django.contrib import messages
 from django.shortcuts import redirect
 from category.models import Category
@@ -112,44 +112,45 @@ def get_variation_stock(request):
     if not product_id:
         return JsonResponse({'stock': 0, 'message': 'Product ID missing.'}, status=400)
 
-    # Collect variation parameters from request, ignoring empty values and CSRF token
-    selected_variations = {}
+    # Collect attribute parameters from request, ignoring empty values and CSRF token
+    selected_attributes = {}
     for key, value in request.GET.items():
         if key in ['product_id', 'csrfmiddlewaretoken'] or not value:
             continue
-        selected_variations[key] = value.strip()
+        selected_attributes[key] = value.strip()
 
-    if not selected_variations:
-        return JsonResponse({'stock': 0, 'message': 'Please select all variations.'}, status=400)
+    if not selected_attributes:
+        return JsonResponse({'stock': 0, 'message': 'Please select all options.'}, status=400)
 
     try:
         product = Product.objects.get(id=product_id)
     except Product.DoesNotExist:
         return JsonResponse({'stock': 0, 'message': 'Product not found.'}, status=404)
 
-    # Retrieve the Variation objects matching the selected criteria
-    variation_objs = []
-    for category, val in selected_variations.items():
+    # Retrieve the AttributeValue objects matching the selected criteria
+    attribute_value_objs = []
+    for category, val in selected_attributes.items():
         try:
-            variation = Variation.objects.get(
-                product=product,
-                variation_category__iexact=category,
-                variation_value__iexact=val,
+            # Find the attribute value globally by matching its attribute name (e.g. "color", "specification")
+            # and its value. No product filter needed since these are global.
+            attribute_value = AttributeValue.objects.get(
+                attribute__name__iexact=category,
+                value__iexact=val,
             )
-            variation_objs.append(variation)
-        except Variation.DoesNotExist:
-            return JsonResponse({'stock': 0, 'message': f'Selected variation not found: {category}={val}.'}, status=404)
+            attribute_value_objs.append(attribute_value)
+        except AttributeValue.DoesNotExist:
+            return JsonResponse({'stock': 0, 'message': f'Selected value not found: {category}={val}.'}, status=404)
 
-    # Filter configurations that contain all selected variations and have the exact same number of variations
+    # Filter configurations that contain all selected attribute values and have the exact same number
     configurations_qs = ProductConfiguration.objects.annotate(
-        v_count=Count('variations', distinct=True)
-    ).filter(product=product, is_active=True, v_count=len(variation_objs))
-    for v in variation_objs:
-        configurations_qs = configurations_qs.filter(variations=v)
+        av_count=Count('attribute_values', distinct=True)
+    ).filter(product=product, is_active=True, av_count=len(attribute_value_objs))
+    for av in attribute_value_objs:
+        configurations_qs = configurations_qs.filter(attribute_values=av)
 
     configuration = configurations_qs.first()
 
     stock = configuration.stock if configuration else 0
     price = configuration.price if configuration else product.price
     message = f"In Stock: {stock}" if stock > 0 else "Out of Stock"
-    return JsonResponse({'stock': stock, 'price': price, 'message': message})
+    return JsonResponse({'stock': stock, 'price': price, 'message': message})
