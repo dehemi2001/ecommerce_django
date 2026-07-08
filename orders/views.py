@@ -14,24 +14,12 @@ from django.template.loader import render_to_string
 
 # Create your views here.
 
-def payments(request):
-    body = json.loads(request.body)
-    order = Order.objects.get(user=request.user, is_ordered=False, order_number=body['orderID'])
-    
-    # Store transaction details inside Payment model
-    payment = Payment(
-        user = request.user,
-        payment_id = body['transID'],
-        payment_method = body['payment_method'],
-        amount_paid = order.order_total,
-        usd_amount = body.get('usd_amount', ''),
-        status = body['status'],
-    )
-    payment.save()
-    order.payment = payment
-    order.is_ordered = True
-    order.save()
+def finalize_order(request, order, payment):
+    """Move cart items to OrderProduct, reduce stock, clear cart and email the customer.
 
+    Shared by both the PayPal and Cash on Delivery flows so the post-payment work is
+    identical regardless of payment method.
+    """
     # Move the cart items to Order Product table
     cart_items = CartItem.objects.filter(user=request.user)
 
@@ -50,16 +38,16 @@ def payments(request):
         orderproduct = OrderProduct.objects.get(id=orderproduct.id)
         orderproduct.attribute_values.set(product_attribute_values)
         orderproduct.save()
-        
+
         # Reduce the quantity of the specific configuration sold
         configurations = ProductConfiguration.objects.annotate(
             av_count=Count('attribute_values', distinct=True)
         ).filter(product=item.product, av_count=len(product_attribute_values))
         for av in product_attribute_values:
             configurations = configurations.filter(attribute_values=av)
-        
+
         configuration = configurations.first()
-        
+
         if configuration:
             configuration.stock -= item.quantity
             configuration.save()
@@ -74,9 +62,61 @@ def payments(request):
         'order' : order,
     })
 
-    to_email = request.user.email
-    send_email = EmailMessage(mail_subject, message, to=[to_email])
-    send_email.send()
+    try:
+        to_email = request.user.email
+        send_email = EmailMessage(mail_subject, message, to=[to_email])
+        send_email.send()
+    except Exception:
+        # Don't fail the order just because the confirmation email couldn't be sent.
+        pass
+
+
+def payments(request):
+    body = json.loads(request.body)
+    order = Order.objects.filter(user=request.user, is_ordered=False, order_number=body['orderID']).first()
+
+    # Idempotency guard: if the order was already finalized (e.g. COD button double
+    # clicked or the page was refreshed) just return its existing details.
+    if order is None:
+        existing = Order.objects.filter(user=request.user, order_number=body['orderID'], is_ordered=True).first()
+        if existing and existing.payment:
+            return JsonResponse({
+                'order_number': existing.order_number,
+                'transID': existing.payment.payment_id,
+            })
+        return JsonResponse({'error': 'Order not found'}, status=404)
+
+    payment_method = body.get('payment_method')
+
+    if payment_method == 'cod':
+        payment = Payment(
+            user = request.user,
+            payment_id = f"COD-{order.order_number}",
+            payment_method = 'COD',
+            amount_paid = order.order_total,
+            usd_amount = '',
+            status = 'Pending',
+        )
+        payment.save()
+        order.payment = payment
+        order.is_ordered = True
+        order.save()
+        finalize_order(request, order, payment)
+    else:
+        # Store transaction details inside Payment model (PayPal)
+        payment = Payment(
+            user = request.user,
+            payment_id = body['transID'],
+            payment_method = body['payment_method'],
+            amount_paid = order.order_total,
+            usd_amount = body.get('usd_amount', ''),
+            status = body['status'],
+        )
+        payment.save()
+        order.payment = payment
+        order.is_ordered = True
+        order.save()
+        finalize_order(request, order, payment)
 
     # Send order number and transaction id back to sendData method via JsonResponse
     data = {
