@@ -6,6 +6,7 @@ from .forms import OrderForm
 import datetime
 from django.db.models import Count
 from .models import Order, Payment, OrderProduct
+from .currency import convert_lkr_to_usd
 import json
 from store.models import Product, ProductConfiguration
 from django.core.mail import EmailMessage
@@ -23,6 +24,7 @@ def payments(request):
         payment_id = body['transID'],
         payment_method = body['payment_method'],
         amount_paid = order.order_total,
+        usd_amount = body.get('usd_amount', ''),
         status = body['status'],
     )
     payment.save()
@@ -134,6 +136,7 @@ def place_order(request, total=0, quantity=0,):
                 'cart_items': cart_items,
                 'total': total,
                 'grand_total': grand_total,
+                'paypal_amount': convert_lkr_to_usd(grand_total),
             }
             return render(request, 'orders/payments.html', context)
     else:

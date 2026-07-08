@@ -9,6 +9,7 @@ class Payment(models.Model):
     payment_id = models.CharField(max_length=100)
     payment_method = models.CharField(max_length=100)
     amount_paid = models.CharField(max_length=100)
+    usd_amount = models.CharField(max_length=100, blank=True)
     status = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
 
