@@ -5,12 +5,12 @@
             <div class="row">
                 <aside class="col-md-5 col-12 mb-4 mb-md-0">
                     <article class="pr-md-4">
-                        <h5 class="title text-white">Solid Computers</h5>
-                        <p class="text-muted mt-3">Negombo's premier destination for high-end computing hardware and personalized tech solutions. Excellence in performance and service.</p>
+                        <h5 class="title text-white">{{ company.name }}</h5>
+                        <p class="text-muted mt-3">{{ company.description }}</p>
                         <ul class="list-inline mt-3">
-                            <li class="list-inline-item"><a class="btn btn-icon btn-light" href="#"><i class="fab fa-facebook-f"></i></a></li>
-                            <li class="list-inline-item"><a class="btn btn-icon btn-light" href="#"><i class="fab fa-twitter"></i></a></li>
-                            <li class="list-inline-item"><a class="btn btn-icon btn-light" href="#"><i class="fab fa-instagram"></i></a></li>
+                            <li class="list-inline-item"><a class="btn btn-icon btn-light" href="{% if company.facebook_url %}{{ company.facebook_url }}{% else %}#{% endif %}"><i class="fab fa-facebook-f"></i></a></li>
+                            <li class="list-inline-item"><a class="btn btn-icon btn-light" href="{% if company.twitter_url %}{{ company.twitter_url }}{% else %}#{% endif %}"><i class="fab fa-twitter"></i></a></li>
+                            <li class="list-inline-item"><a class="btn btn-icon btn-light" href="{% if company.instagram_url %}{{ company.instagram_url }}{% else %}#{% endif %}"><i class="fab fa-instagram"></i></a></li>
                         </ul>
                     </article>
                 </aside>
@@ -33,9 +33,9 @@
                 <aside class="col-md-3 col-12">
                     <h6 class="title text-white">Store Information</h6>
                     <ul class="list-unstyled text-muted footer-links">
-                        <li class="mb-2"><i class="fa fa-map-marker mr-2"></i> 444 Puttalam - Colombo Rd, Negombo</li>
-                        <li class="mb-2"><i class="fa fa-envelope mr-2"></i> solidcomputers@outlook.com</li>
-                        <li class="mb-2"><i class="fa fa-phone mr-2"></i> +94 76 348 9449</li>
+                        <li class="mb-2"><i class="fa fa-map-marker mr-2"></i> {{ company.address }}</li>
+                        <li class="mb-2"><i class="fa fa-envelope mr-2"></i> {{ company.email }}</li>
+                        <li class="mb-2"><i class="fa fa-phone mr-2"></i> {{ company.phone }}</li>
                     </ul>
                 </aside>
             </div> <!-- row.// -->

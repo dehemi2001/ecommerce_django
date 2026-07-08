@@ -30,7 +30,11 @@
             <div class="row align-items-center">
                 <div class="col-lg-2 col-md-12 col-6">
                     <a href="{% url 'home' %}" class="brand-wrap">
-                        <img class="logo" src="{% static './images/logo3.png' %}" style="max-height: 90px;" alt="Solid Computers">
+                        {% if company.logo %}
+                            <img class="logo" src="{{ company.logo.url }}" style="max-height: 90px;" alt="{{ company.name }}">
+                        {% else %}
+                            <img class="logo" src="{% static './images/logo3.png' %}" style="max-height: 90px;" alt="{{ company.name }}">
+                        {% endif %}
                     </a>
                 </div>
                 <div class="col-lg col-sm col-md col-6 flex-grow-0 ml-lg-4">
