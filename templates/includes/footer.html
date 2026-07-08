@@ -18,8 +18,8 @@
                     <h6 class="title text-white">Quick Links</h6>
                     <ul class="list-unstyled text-muted footer-links">
                         <li> <a href="{% url 'store' %}" class="text-muted">Our Store</a></li>
-                        <li> <a href="#" class="text-muted">About Us</a></li>
-                        <li> <a href="#" class="text-muted">Contact Us</a></li>
+                        <li> <a href="{% url 'about_us' %}" class="text-muted">About Us</a></li>
+                        <li> <a href="{% url 'contact_us' %}" class="text-muted">Contact Us</a></li>
                     </ul>
                 </aside>
                 <aside class="col-md-2 col-6 mb-4 mb-md-0">
@@ -48,9 +48,9 @@
                 </div>
                 <div class="col-md-4 col-12 mb-2 mb-md-0">
                     <ul class="list-inline mb-0 footer-bottom-links">
-                        <li class="list-inline-item"><a href="#" class="text-muted">Terms &amp; Conditions</a></li>
+                        <li class="list-inline-item"><a href="{% url 'terms_conditions' %}" class="text-muted">Terms &amp; Conditions</a></li>
                         <li class="list-inline-item text-secondary">|</li>
-                        <li class="list-inline-item"><a href="#" class="text-muted">Privacy Policy</a></li>
+                        <li class="list-inline-item"><a href="{% url 'privacy_policy' %}" class="text-muted">Privacy Policy</a></li>
                     </ul>
                 </div>
                 <div class="col-md-3 col-12 text-md-right text-muted">
