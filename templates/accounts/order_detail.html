@@ -80,6 +80,12 @@
                                                 <th colspan="2" class="text-right">Grand Total:</th>
                                                 <th class="text-center">LKR {{order.order_total}}</th>
                                             </tr>
+                                            {% if order.payment.usd_amount %}
+                                            <tr>
+                                                <th colspan="2" class="text-right">Amount Paid (PayPal):</th>
+                                                <th class="text-center">$ {{order.payment.usd_amount}} USD</th>
+                                            </tr>
+                                            {% endif %}
                                         </tfoot>
                                     </table>
                                 </div>
