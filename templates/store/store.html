@@ -22,7 +22,9 @@
         <div class="row">
             <aside class="col-md-3">
 
+                <form method="get" action="{{ request.path }}">
                 <div class="card">
+                    <a href="{{ request.path }}" class="btn btn-sm btn-outline-secondary btn-block mb-3">Reset Filters</a>
                     <article class="filter-group">
                         <header class="card-header">
                             <a href="#" data-toggle="collapse" data-target="#collapse_1" aria-expanded="true" class="">
@@ -34,46 +36,35 @@
                             <div class="card-body">
 
                                 <ul class="list-menu">
-                                    <li><a href="{% url 'store' %}">All Products</a></li>
+                                    <li><a href="{% url 'store' %}{% if filter_query %}?{{ filter_query }}{% endif %}" class="{% if not active_category %}active font-weight-bold text-primary{% endif %}">All Products</a></li>
                                     {% for category in links %}
-                                    <li><a href="{{ category.get_url }}">{{ category.category_name }} </a></li>
+                                    <li><a href="{{ category.get_url }}{% if filter_query %}?{{ filter_query }}{% endif %}" class="{% if category.slug == active_category %}active font-weight-bold text-primary{% endif %}">{{ category.category_name }} </a></li>
                                     {% endfor %}
                                 </ul>
 
                             </div> <!-- card-body.// -->
                         </div>
                     </article> <!-- filter-group  .// -->
+                    {% for attribute in attributes %}
                     <article class="filter-group">
                         <header class="card-header">
-                            <a href="#" data-toggle="collapse" data-target="#collapse_4" aria-expanded="true" class="">
+                            <a href="#" data-toggle="collapse" data-target="#collapse_attr_{{ attribute.id }}" aria-expanded="true" class="">
                                 <i class="icon-control fa fa-chevron-down"></i>
-                                <h6 class="title">Specifications</h6>
+                                <h6 class="title">{{ attribute.name }}</h6>
                             </a>
                         </header>
-                        <div class="filter-content collapse show" id="collapse_4" style="">
+                        <div class="filter-content collapse show" id="collapse_attr_{{ attribute.id }}">
                             <div class="card-body">
+                                {% for value in attribute.used_values %}
                                 <label class="checkbox-btn">
-                                    <input type="checkbox">
-                                    <span class="btn btn-light"> 8GB </span>
+                                    <input type="checkbox" name="attr_{{ attribute.id }}" value="{{ value.id }}" {% if value.id in attribute.selected_ids %}checked{% endif %}>
+                                    <span class="btn btn-light"> {{ value.value }} </span>
                                 </label>
-
-                                <label class="checkbox-btn">
-                                    <input type="checkbox">
-                                    <span class="btn btn-light"> 16GB </span>
-                                </label>
-
-                                <label class="checkbox-btn">
-                                    <input type="checkbox">
-                                    <span class="btn btn-light"> Wired </span>
-                                </label>
-
-                                <label class="checkbox-btn">
-                                    <input type="checkbox">
-                                    <span class="btn btn-light"> Wireless </span>
-                                </label>
+                                {% endfor %}
                             </div><!-- card-body.// -->
                         </div>
                     </article> <!-- filter-group .// -->
+                    {% endfor %}
 
                     <article class="filter-group">
                         <header class="card-header">
@@ -88,28 +79,11 @@
                                 <div class="form-row">
                                     <div class="form-group col-md-6">
                                         <label>Min</label>
-                                        <!-- <input class="form-control" placeholder="LKR 0" type="number"> -->
-                                        <select class="mr-2 form-control">
-                                            <option value="0">LKR 0</option>
-                                            <option value="50">LKR 50</option>
-                                            <option value="100">LKR 100</option>
-                                            <option value="150">LKR 150</option>
-                                            <option value="200">LKR 200</option>
-                                            <option value="500">LKR 500</option>
-                                            <option value="1000">LKR 1000</option>
-                                        </select>
+                                        <input type="number" name="min_price" class="form-control" placeholder="LKR 0" value="{{ min_price }}">
                                     </div>
                                     <div class="form-group text-right col-md-6">
                                         <label>Max</label>
-                                        <select class="mr-2 form-control">
-                                            <option value="50">LKR 50</option>
-                                            <option value="100">LKR 100</option>
-                                            <option value="150">LKR 150</option>
-                                            <option value="200">LKR 200</option>
-                                            <option value="500">LKR 500</option>
-                                            <option value="1000">LKR 1000</option>
-                                            <option value="2000">LKR 2000+</option>
-                                        </select>
+                                        <input type="number" name="max_price" class="form-control" placeholder="LKR 2000+" value="{{ max_price }}">
                                     </div>
                                 </div> <!-- form-row.// -->
                                 <button class="btn btn-block btn-primary">Apply</button>
@@ -118,6 +92,7 @@
                     </article> <!-- filter-group .// -->
 
                 </div> <!-- card.// -->
+                </form>
 
             </aside> <!-- col.// -->
             <main class="col-md-9">
@@ -165,7 +140,7 @@
                     <ul class="pagination">
                         {% if products.has_previous %}
                         <li class="page-item"><a class="page-link"
-                                href="?page={{products.previous_page_number}}">Previous</a></li>
+                                href="?page={{products.previous_page_number}}{% if filter_query %}&{{ filter_query }}{% endif %}">Previous</a></li>
                         {% else %}
                         <li class="page-item disabled"><a class="page-link" href="#">Previous</a></li>
                         {% endif %}
@@ -173,11 +148,11 @@
                         {% if products.number == i %}
                         <li class="page-item active"><a class="page-link" href="#">{{i}}</a></li>
                         {% else %}
-                        <li class="page-item"><a class="page-link" href="?page={{i}}">{{i}}</a></li>
+                        <li class="page-item"><a class="page-link" href="?page={{i}}{% if filter_query %}&{{ filter_query }}{% endif %}">{{i}}</a></li>
                         {% endif %}
                         {% endfor %}
                         {% if products.has_next %}
-                        <li class="page-item"><a class="page-link" href="?page={{products.next_page_number}}">Next</a>
+                        <li class="page-item"><a class="page-link" href="?page={{products.next_page_number}}{% if filter_query %}&{{ filter_query }}{% endif %}">Next</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled"><a class="page-link" href="#">Next</a></li>

@@ -1,11 +1,11 @@
 from orders.models import OrderProduct
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404
-from store.models import Product, ReviewRating, ProductGallery, AttributeValue, ProductConfiguration
+from store.models import Product, ReviewRating, ProductGallery, Attribute, AttributeValue, ProductConfiguration
 from django.contrib import messages
 from django.shortcuts import redirect
 from category.models import Category
-from django.db.models import Q
+from django.db.models import Q, Min
 from carts.views import _cart_id
 from carts.models import CartItem
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
@@ -15,28 +15,80 @@ from .forms import ReviewForm
 
 # Create your views here.
 
-def store(request, category_slug=None):
-    categories = None
-    products = None
+def _filter_attributes():
+    """Attributes (and their values) that are actually used by available products."""
+    attributes = Attribute.objects.filter(
+        values__productconfiguration__product__is_available=True
+    ).distinct()
+    for attr in attributes:
+        attr.used_values = attr.values.filter(
+            productconfiguration__product__is_available=True
+        ).distinct()
+    return attributes
 
+
+def _apply_product_filters(products, request):
+    """Faceted filtering: OR within an attribute, AND across attributes, plus price range."""
+    selected = {}
+    for key, vals in request.GET.lists():
+        if key.startswith('attr_') and vals:
+            try:
+                attr_id = int(key[len('attr_'):])
+            except ValueError:
+                continue
+            ids = [int(v) for v in vals if v.isdigit()]
+            if ids:
+                products = products.filter(
+                    configurations__is_active=True,
+                    configurations__attribute_values__id__in=ids,
+                ).distinct()
+                selected[attr_id] = ids
+
+    min_p = request.GET.get('min_price')
+    max_p = request.GET.get('max_price')
+    if min_p or max_p:
+        products = products.annotate(_min_price=Min('configurations__price'))
+        if min_p:
+            products = products.filter(_min_price__gte=min_p)
+        if max_p:
+            products = products.filter(_min_price__lte=max_p)
+        products = products.distinct()
+
+    return products, selected, min_p, max_p
+
+
+def _filter_context(request, products, selected, min_p, max_p, active_category=None):
+    attributes = _filter_attributes()
+    for attr in attributes:
+        attr.selected_ids = set(selected.get(attr.id, []))
+    get = request.GET.copy()
+    get.pop('page', None)
+    return {
+        'products': products,
+        'product_count': products.paginator.count if hasattr(products, 'paginator') else products.count(),
+        'attributes': attributes,
+        'min_price': min_p,
+        'max_price': max_p,
+        'filter_query': get.urlencode(),
+        'active_category': active_category,
+    }
+
+
+def store(request, category_slug=None):
     if category_slug != None:
         categories = get_object_or_404(Category, slug=category_slug)
         products = Product.objects.filter(category=categories, is_available=True)
-        paginator = Paginator(products, 6)
-        page = request.GET.get('page')
-        paged_products = paginator.get_page(page)
-        product_count = products.count()
     else:
-        products = Product.objects.all().filter(is_available=True).order_by('id')
-        paginator = Paginator(products, 6)
-        page = request.GET.get('page')
-        paged_products = paginator.get_page(page)     
-        product_count = products.count()
+        products = Product.objects.filter(is_available=True)
 
-    context = {
-        'products': paged_products,
-        'product_count': product_count,
-    }
+    products, selected, min_p, max_p = _apply_product_filters(products, request)
+    products = products.order_by('id')
+
+    paginator = Paginator(products, 6)
+    page = request.GET.get('page')
+    paged_products = paginator.get_page(page)
+
+    context = _filter_context(request, paged_products, selected, min_p, max_p, active_category=category_slug)
     return render(request, 'store/store.html', context)
 
 def product_detail(request, category_slug, product_slug):
@@ -70,15 +122,23 @@ def product_detail(request, category_slug, product_slug):
     return render(request, 'store/product_detail.html', context)
 
 def search(request):
+    products = Product.objects.none()
     if 'keyword' in request.GET:
         keyword = request.GET['keyword']
         if keyword:
-            products = Product.objects.order_by('-created_date').filter(Q(description__icontains=keyword) | Q(product_name__icontains=keyword))
-            product_count = products.count()
-    context = {
-        'products': products,
-        'product_count': product_count,
-    }
+            products = Product.objects.order_by('-created_date').filter(
+                Q(description__icontains=keyword) | Q(product_name__icontains=keyword),
+                is_available=True,
+            )
+
+    products, selected, min_p, max_p = _apply_product_filters(products, request)
+    products = products.order_by('-created_date')
+
+    paginator = Paginator(products, 6)
+    page = request.GET.get('page')
+    paged_products = paginator.get_page(page)
+
+    context = _filter_context(request, paged_products, selected, min_p, max_p)
     return render(request, 'store/store.html', context)
 
 def submit_review(request, product_id):
