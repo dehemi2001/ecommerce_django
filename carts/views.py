@@ -106,8 +106,24 @@ def cart(request, total=0, quantity=0, cart_items=None):
     return render(request, 'store/cart.html', get_cart_summary(request))
 
 @login_required(login_url='login')
+@login_required(login_url='login')
 def checkout(request, total=0, quantity=0, cart_items=None):
-    return render(request, 'store/checkout.html', get_cart_summary(request))
+    context = get_cart_summary(request)
+    user = request.user
+    profile = getattr(user, 'userprofile', None)
+    context['initial'] = {
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'email': user.email,
+        'phone': user.phone_number,
+        'address_line_1': profile.address_line_1 if profile else '',
+        'address_line_2': profile.address_line_2 if profile else '',
+        'city': profile.city if profile else '',
+        'state': profile.state if profile else '',
+        'country': profile.country if profile else '',
+        'order_note': '',
+    }
+    return render(request, 'store/checkout.html', context)
 
 def remove_cart(request, product_id, cart_item_id):
     product = get_object_or_404(Product, id=product_id)
