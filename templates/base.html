@@ -53,9 +53,11 @@
     <!-- navbar -->
     {% include 'includes/navbar.html' %}
 
-    {% block content %}
-    <!--content-->
-    {% endblock %}
+    <div class="main-content">
+        {% block content %}
+        <!--content-->
+        {% endblock %}
+    </div>
 
     <!-- footer -->
     {% include 'includes/footer.html' %}
