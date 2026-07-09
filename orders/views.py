@@ -9,8 +9,9 @@ from .models import Order, Payment, OrderProduct
 from .currency import convert_lkr_to_usd
 import json
 from store.models import Product, ProductConfiguration
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+from company.models import Company
 
 # Create your views here.
 
@@ -55,17 +56,38 @@ def finalize_order(request, order, payment):
     # Clear cart
     CartItem.objects.filter(user=request.user).delete()
 
-    # Send order recieved email to customer
+    # Send the invoice as an HTML email (with a plain-text fallback)
     mail_subject = 'Thank you for your order!'
-    message = render_to_string('orders/order_recieved_email.html', {
-        'user' : request.user,
-        'order' : order,
-    })
+
+    ordered_products = OrderProduct.objects.filter(order=order)
+    subtotal = sum(item.product_price * item.quantity for item in ordered_products)
+
+    company = Company.objects.first()
+    logo_url = ''
+    if company and company.logo:
+        logo_url = request.build_absolute_uri(company.logo.url)
+
+    html_message = render_to_string('orders/order_invoice_email.html', {
+        'order': order,
+        'ordered_products': ordered_products,
+        'subtotal': subtotal,
+        'payment': payment,
+        'company': company,
+        'logo_url': logo_url,
+    }, request=request)
+
+    text_message = (
+        f"Hi {order.first_name},\n\n"
+        f"Thank you for your order!\n\n"
+        f"Order Number: {order.order_number}\n"
+        f"Grand Total: LKR {order.order_total}\n"
+    )
 
     try:
         to_email = request.user.email
-        send_email = EmailMessage(mail_subject, message, to=[to_email])
-        send_email.send()
+        email = EmailMultiAlternatives(mail_subject, text_message, to=[to_email])
+        email.attach_alternative(html_message, "text/html")
+        email.send()
     except Exception:
         # Don't fail the order just because the confirmation email couldn't be sent.
         pass

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+</head>
+<body style="margin:0; padding:0; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif; color:#333333;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f4; padding:20px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px; width:100%; background-color:#ffffff; border-radius:6px; overflow:hidden;">
+                    <tr>
+                        <td style="padding:30px; border-bottom:1px solid #eeeeee;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td>
+                                        {% if logo_url %}
+                                        <img src="{{ logo_url }}" alt="{{ company.name|default:'Company' }}" style="max-height:50px;">
+                                        {% else %}
+                                        <span style="font-size:22px; font-weight:bold; color:#333333;">{{ company.name|default:'Company' }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td align="right" style="font-size:13px; color:#777777;">
+                                        <strong style="display:block; color:#333333;">Invoiced To</strong>
+                                        {{ order.full_name }}<br>
+                                        {{ order.full_address }}<br>
+                                        {{ order.city }}{% if order.state %}, {{ order.state }}{% endif %}<br>
+                                        {{ order.country }}
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:20px 30px; background-color:#fafafa; font-size:13px; color:#555555;">
+                            <strong style="color:#333333;">Order</strong> #{{ order.order_number }}<br>
+                            <strong style="color:#333333;">Transaction ID</strong> {{ order.payment.payment_id }}<br>
+                            <strong style="color:#333333;">Order Date:</strong> {{ order.created_at }}<br>
+                            <strong style="color:#333333;">Status:</strong> {{ order.payment.status }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:20px 30px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; font-size:13px;">
+                                <thead>
+                                    <tr style="background-color:#f0f0f0;">
+                                        <th align="left" style="padding:10px; border-bottom:2px solid #dddddd;">Products</th>
+                                        <th align="center" style="padding:10px; border-bottom:2px solid #dddddd;">Qty</th>
+                                        <th align="right" style="padding:10px; border-bottom:2px solid #dddddd;">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in ordered_products %}
+                                    <tr>
+                                        <td style="padding:10px; border-bottom:1px solid #eeeeee; vertical-align:top;">
+                                            <strong>{{ item.product.product_name }}</strong>
+                                            {% if item.attribute_values.all %}
+                                            <div style="color:#777777; font-size:12px; margin-top:4px;">
+                                                {% for i in item.attribute_values.all %}
+                                                {{ i.attribute.name|capfirst }} : {{ i.value|capfirst }}{% if not forloop.last %}<br>{% endif %}
+                                                {% endfor %}
+                                            </div>
+                                            {% endif %}
+                                        </td>
+                                        <td align="center" style="padding:10px; border-bottom:1px solid #eeeeee;">{{ item.quantity }}</td>
+                                        <td align="right" style="padding:10px; border-bottom:1px solid #eeeeee;">LKR {{ item.product_price }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="2" align="right" style="padding:10px; font-size:13px; color:#555555;">Sub Total:</td>
+                                        <td align="right" style="padding:10px; font-size:13px;">LKR {{ subtotal }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" align="right" style="padding:10px; font-weight:bold; font-size:15px;">Grand Total:</td>
+                                        <td align="right" style="padding:10px; font-weight:bold; font-size:15px;">LKR {{ order.order_total }}</td>
+                                    </tr>
+                                    {% if payment.usd_amount %}
+                                    <tr>
+                                        <td colspan="2" align="right" style="padding:10px; font-size:13px; color:#555555;">Amount Paid (PayPal):</td>
+                                        <td align="right" style="padding:10px; font-size:13px;">$ {{ payment.usd_amount }} USD</td>
+                                    </tr>
+                                    {% endif %}
+                                </tfoot>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding:20px 30px; background-color:#fafafa; font-size:13px; color:#777777;">
+                            Thank you for shopping with us!
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
