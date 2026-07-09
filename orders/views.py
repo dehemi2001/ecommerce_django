@@ -1,6 +1,7 @@
 from django.template import context
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
+from django.conf import settings
 from carts.models import CartItem
 from .forms import OrderForm
 import datetime
@@ -98,7 +99,8 @@ def finalize_order(request, order, payment):
 
     try:
         to_email = request.user.email
-        email = EmailMultiAlternatives(mail_subject, text_message, to=[to_email])
+        from_email = f"{company.name} <{settings.EMAIL_HOST_USER}>" if company else settings.EMAIL_HOST_USER
+        email = EmailMultiAlternatives(mail_subject, text_message, from_email, to=[to_email])
         if mime_logo is not None:
             email.attach(mime_logo)
         email.attach_alternative(html_message, "text/html")

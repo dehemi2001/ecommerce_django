@@ -19,6 +19,7 @@ from django.core.mail import EmailMessage
 
 from carts.views import _cart_id
 from carts.models import Cart, CartItem
+from company.models import Company
 import requests
 
 # Create your views here.
@@ -54,7 +55,9 @@ def register(request):
             })
 
             to_email = email
-            send_email = EmailMessage(mail_subject, message, to=[to_email])
+            company = Company.objects.first()
+            from_email = f"{company.name} <{settings.EMAIL_HOST_USER}>" if company else settings.EMAIL_HOST_USER
+            send_email = EmailMessage(mail_subject, message, from_email, to=[to_email])
             send_email.send()
             
             #messages.success(request, 'Thank you for registering with us. We have sent you a verification email to your email address. Please verify it.')
@@ -179,7 +182,9 @@ def forgotPassword(request):
                 'token' : default_token_generator.make_token(user),
             })
             to_email = email
-            send_email = EmailMessage(mail_subject, message, to=[to_email])
+            company = Company.objects.first()
+            from_email = f"{company.name} <{settings.EMAIL_HOST_USER}>" if company else settings.EMAIL_HOST_USER
+            send_email = EmailMessage(mail_subject, message, from_email, to=[to_email])
             send_email.send()
 
             messages.success(request, 'Password reset email has been sent to your email address.')
