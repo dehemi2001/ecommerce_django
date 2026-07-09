@@ -63,9 +63,22 @@ def finalize_order(request, order, payment):
     subtotal = sum(item.product_price * item.quantity for item in ordered_products)
 
     company = Company.objects.first()
-    logo_url = ''
+    logo_cid = None
+    mime_logo = None
     if company and company.logo:
-        logo_url = request.build_absolute_uri(company.logo.url)
+        try:
+            import os
+            from email.mime.image import MIMEImage
+            logo_path = company.logo.path
+            with open(logo_path, 'rb') as f:
+                ext = os.path.splitext(logo_path)[1].lower().lstrip('.')
+                subtype = 'jpeg' if ext == 'jpg' else (ext or 'png')
+                mime_logo = MIMEImage(f.read(), _subtype=subtype)
+            mime_logo.add_header('Content-ID', '<logo>')
+            mime_logo.add_header('Content-Disposition', 'inline', filename='logo.png')
+            logo_cid = 'logo'
+        except (FileNotFoundError, OSError):
+            logo_cid = None
 
     html_message = render_to_string('orders/order_invoice_email.html', {
         'order': order,
@@ -73,7 +86,7 @@ def finalize_order(request, order, payment):
         'subtotal': subtotal,
         'payment': payment,
         'company': company,
-        'logo_url': logo_url,
+        'logo_cid': logo_cid,
     }, request=request)
 
     text_message = (
@@ -86,6 +99,8 @@ def finalize_order(request, order, payment):
     try:
         to_email = request.user.email
         email = EmailMultiAlternatives(mail_subject, text_message, to=[to_email])
+        if mime_logo is not None:
+            email.attach(mime_logo)
         email.attach_alternative(html_message, "text/html")
         email.send()
     except Exception:
