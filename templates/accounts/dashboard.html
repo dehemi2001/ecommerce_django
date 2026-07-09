@@ -28,7 +28,13 @@
 				<div class="col-md-6">
 					<div class="card" style="text-align:center;">
 						<div class="card-body">
+							{% if userprofile.profile_picture %}
 							<img src="{{userprofile.profile_picture.url}}" alt="User Profile Picture" width="50" height="50" style="border-radius: 50%;">
+							{% else %}
+							<span style="display:inline-block;width:50px;height:50px;border-radius:50%;background:#e9ecef;color:#888;text-align:center;line-height:50px;">
+								<i class="fa fa-user"></i>
+							</span>
+							{% endif %}
 							<p class="mb-0">{{user.email}}</p>
 							<p>{{user.phone_number}}</p>
 						</div>

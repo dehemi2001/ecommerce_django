@@ -218,6 +218,16 @@
                 {% for review in reviews %}
                 <article class="box mb-3">
                     <div class="icontext w-100">
+                        <div class="icon">
+                            {% if review.avatar_url %}
+                            <img src="{{ review.avatar_url }}" alt="{{ review.user.full_name }}"
+                                 style="width:48px;height:48px;border-radius:50%;object-fit:cover;">
+                            {% else %}
+                            <span style="display:inline-block;width:48px;height:48px;border-radius:50%;background:#e9ecef;color:#888;text-align:center;line-height:48px;">
+                                <i class="fa fa-user"></i>
+                            </span>
+                            {% endif %}
+                        </div>
                         <div class="text">
                             <span class="date text-muted float-md-right">{{review.updated_at}}</span>
                             <h6 class="mb-1">{{ review.user.full_name }}</h6>
