@@ -3,6 +3,7 @@ from django.db import models
 from category.models import Category
 from django.urls import reverse
 from django.db.models import Avg, Count
+from decimal import Decimal
 
 # Create your models here.
 
@@ -102,31 +103,40 @@ class ProductConfiguration(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='configurations')
     attribute_values = models.ManyToManyField(AttributeValue)
     stock = models.IntegerField(default=0)
-    price = models.IntegerField(default=0)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
     is_active = models.BooleanField(default=True)
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True)
+    configuration_signature = models.CharField(max_length=255, editable=False, blank=True, db_index=True)
+
+    def _compute_signature(self):
+        av_ids = sorted(str(av.id) for av in self.attribute_values.all())
+        return '_'.join(av_ids) if av_ids else ''
 
     def clean(self):
         from django.core.exceptions import ValidationError
         if not self.pk:
             return
         av_qs = self.attribute_values.all()
-        # Ensure each attribute appears at most once
         attribute_ids = set(av.attribute_id for av in av_qs)
         if len(attribute_ids) != av_qs.count():
             raise ValidationError('Each attribute can only have one value per configuration.')
-        # Check for duplicate configuration for the same product
-        existing = ProductConfiguration.objects.filter(product=self.product, attribute_values__in=av_qs).distinct()
-        for config in existing:
-            if config.id != self.id:
-                other_avs = set(config.attribute_values.all())
-                if other_avs == set(av_qs):
-                    raise ValidationError('This combination of attribute values already exists for this product.')
+        av_ids = sorted(str(av.id) for av in av_qs)
+        signature = '_'.join(av_ids) if av_ids else ''
+        existing = ProductConfiguration.objects.filter(product=self.product, configuration_signature=signature).exclude(pk=self.pk)
+        if signature and existing.exists():
+            raise ValidationError('This combination of attribute values already exists for this product.')
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            self.configuration_signature = self._compute_signature()
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        attrs_list = ', '.join(str(av) for av in self.attribute_values.all())
-        return f"{self.product.product_name} ({attrs_list})"
+        return f"ProductConfiguration (product_id={self.product_id})"
+
+    class Meta:
+        unique_together = (('product', 'configuration_signature'),)
 
 
 class ReviewRating(models.Model):

@@ -77,6 +77,29 @@ class ProductConfigurationForm(forms.ModelForm):
             'attribute_values': AttributeValuesWidget(),
         }
 
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        cleaned_data = super().clean()
+        product = cleaned_data.get('product')
+        attribute_values = cleaned_data.get('attribute_values')
+        
+        if product and attribute_values:
+            av_ids = sorted(str(av.id if hasattr(av, 'id') else av) for av in attribute_values)
+            signature = '_'.join(av_ids) if av_ids else ''
+            
+            qs = ProductConfiguration.objects.filter(
+                product=product, configuration_signature=signature
+            )
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            
+            if signature and qs.exists():
+                raise ValidationError(
+                    'This combination of attribute values already exists for this product.'
+                )
+        
+        return cleaned_data
+
 
 class ReviewRatingInline(admin.TabularInline):
     model = ReviewRating
@@ -111,6 +134,12 @@ class ProductConfigurationAdmin(admin.ModelAdmin):
     def attributes_display(self, obj):
         return ', '.join(str(av) for av in obj.attribute_values.all())
     attributes_display.short_description = 'Attributes'
+
+    def save_related(self, request, form, formsets, change):
+        super().save_related(request, form, formsets, change)
+        obj = form.instance
+        obj.configuration_signature = obj._compute_signature()
+        ProductConfiguration.objects.filter(pk=obj.pk).update(configuration_signature=obj.configuration_signature)
 
 
 admin.site.register(ProductConfiguration, ProductConfigurationAdmin)
