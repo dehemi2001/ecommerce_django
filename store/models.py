@@ -4,16 +4,16 @@ from category.models import Category
 from django.urls import reverse
 from django.db.models import Avg, Count
 from decimal import Decimal
+from core.models import SoftDeleteModel
 
-# Create your models here.
 
-class Product(models.Model):
+class Product(SoftDeleteModel):
     product_name = models.CharField(max_length=200, unique=True)
     slug = models.SlugField(max_length=200, unique=True)
     description = models.TextField(max_length=500, blank=True)
     images = models.ImageField(upload_to='photos/products')
     is_available = models.BooleanField(default=True)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    category = models.ForeignKey(Category, on_delete=models.PROTECT)
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
 
@@ -49,10 +49,6 @@ class Product(models.Model):
 
     @property
     def attribute_groups(self):
-        """
-        Returns a dict of {attribute_name: [attribute_values]} for active configurations.
-        Used by the product detail template to render dropdowns dynamically.
-        """
         attrs = Attribute.objects.filter(
             values__productconfiguration__product=self,
             values__productconfiguration__is_active=True
@@ -65,7 +61,6 @@ class Product(models.Model):
             ).distinct()
         return groups
 
-    # Backward-compatible aliases for templates that may still reference these
     @property
     def available_colors(self):
         return self.attribute_groups.get('Color', [])
@@ -76,7 +71,6 @@ class Product(models.Model):
 
 
 class Attribute(models.Model):
-    """Global attribute category (e.g. 'Color', 'RAM', 'Storage', 'Size')."""
     name = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
@@ -87,7 +81,6 @@ class Attribute(models.Model):
 
 
 class AttributeValue(models.Model):
-    """Global attribute value (e.g. 'Black', '16GB', '512GB') linked to an Attribute."""
     attribute = models.ForeignKey(Attribute, on_delete=models.CASCADE, related_name='values')
     value = models.CharField(max_length=100)
 
@@ -99,7 +92,7 @@ class AttributeValue(models.Model):
         unique_together = ('attribute', 'value')
 
 
-class ProductConfiguration(models.Model):
+class ProductConfiguration(SoftDeleteModel):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='configurations')
     attribute_values = models.ManyToManyField(AttributeValue)
     stock = models.IntegerField(default=0)

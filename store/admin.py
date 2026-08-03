@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib import messages
 from .models import Product, Attribute, AttributeValue, ReviewRating, ProductGallery, ProductConfiguration
 import admin_thumbnails
 from django import forms
@@ -12,15 +13,9 @@ class ProductGalleryInline(admin.TabularInline):
 
 
 class AttributeValuesWidget(forms.Widget):
-    """
-    Custom widget that renders the M2M attribute_values field as
-    one dropdown per global attribute (Color ▼, RAM ▼, etc.).
-    Uses a hidden input to store the selected IDs for Django's M2M processing.
-    """
     def render(self, name, value, attrs=None, renderer=None):
         if value is None:
             value = []
-        # value comes as a list of IDs from Django
         value_ids = [str(v) for v in (value or [])]
 
         html = '<div class="attribute-values-widget" style="display: flex; gap: 20px; flex-wrap: wrap;">'
@@ -33,12 +28,10 @@ class AttributeValuesWidget(forms.Widget):
                 html += f'<option value="{av.id}" {selected}>{av.value}</option>'
             html += '</select></div>'
 
-        # Hidden field that holds the actual M2M value (comma-separated IDs)
         current_value = ','.join(value_ids)
         html += f'<input type="hidden" name="{name}" id="id_{name}" value="{current_value}" />'
         html += '</div>'
 
-        # JavaScript to sync dropdown selections to the hidden field
         html += '''<script>
         (function() {
             var container = document.currentScript.parentElement;
@@ -58,14 +51,12 @@ class AttributeValuesWidget(forms.Widget):
         return mark_safe(html)
 
     def value_from_datadict(self, data, files, name):
-        """Parse the comma-separated hidden field value back into a list of IDs."""
         raw = data.get(name, '')
         if raw:
             return [int(x) for x in raw.split(',') if x]
         return []
 
     def format_value(self, value):
-        """Return the value as-is for rendering."""
         return value
 
 
@@ -109,22 +100,53 @@ class ReviewRatingInline(admin.TabularInline):
 
 
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('product_name', 'price', 'category', 'modified_date', 'is_available')
+    list_display = ('product_name', 'price', 'category', 'modified_date', 'is_available', 'is_deleted')
     prepopulated_fields = {'slug': ('product_name',)}
     inlines = [ProductGalleryInline, ReviewRatingInline]
+    list_filter = ('is_available', 'is_deleted')
+    readonly_fields = ('is_deleted', 'deleted_at')
+    actions = ['soft_delete_selected', 'restore_selected']
+
+    def get_queryset(self, request):
+        return Product.all_objects.all()
+
+    def soft_delete_selected(self, request, queryset):
+        for obj in queryset:
+            obj.soft_delete()
+        self.message_user(request, f'{queryset.count()} product(s) were soft deleted.', messages.SUCCESS)
+    soft_delete_selected.short_description = 'Soft delete selected products'
+
+    def restore_selected(self, request, queryset):
+        for obj in queryset:
+            obj.restore()
+        self.message_user(request, f'{queryset.count()} product(s) were restored.', messages.SUCCESS)
+    restore_selected.short_description = 'Restore selected products'
+
+    def delete_model(self, request, obj):
+        obj.soft_delete()
+        self.message_user(request, 'Product was soft deleted.', messages.SUCCESS)
+
+    def delete_queryset(self, request, queryset):
+        for obj in queryset:
+            obj.soft_delete()
+        self.message_user(request, f'{queryset.count()} product(s) were soft deleted.', messages.SUCCESS)
 
 
 admin.site.register(Product, ProductAdmin)
 
 
-# Standalone admin for ProductConfiguration — manage all inventory in one place
 class ProductConfigurationAdmin(admin.ModelAdmin):
     form = ProductConfigurationForm
-    list_display = ('product_name_display', 'attributes_display', 'stock', 'price', 'is_active', 'updated_date')
+    list_display = ('product_name_display', 'attributes_display', 'stock', 'price', 'is_active', 'updated_date', 'is_deleted')
     list_editable = ('stock', 'price', 'is_active')
-    list_filter = ('is_active', 'product')
+    list_filter = ('is_active', 'product', 'is_deleted')
     search_fields = ('product__product_name',)
     list_per_page = 25
+    readonly_fields = ('is_deleted', 'deleted_at')
+    actions = ['soft_delete_selected', 'restore_selected']
+
+    def get_queryset(self, request):
+        return ProductConfiguration.all_objects.all()
 
     def product_name_display(self, obj):
         return obj.product.product_name
@@ -134,6 +156,27 @@ class ProductConfigurationAdmin(admin.ModelAdmin):
     def attributes_display(self, obj):
         return ', '.join(str(av) for av in obj.attribute_values.all())
     attributes_display.short_description = 'Attributes'
+
+    def soft_delete_selected(self, request, queryset):
+        for obj in queryset:
+            obj.soft_delete()
+        self.message_user(request, f'{queryset.count()} configuration(s) were soft deleted.', messages.SUCCESS)
+    soft_delete_selected.short_description = 'Soft delete selected configurations'
+
+    def restore_selected(self, request, queryset):
+        for obj in queryset:
+            obj.restore()
+        self.message_user(request, f'{queryset.count()} configuration(s) were restored.', messages.SUCCESS)
+    restore_selected.short_description = 'Restore selected configurations'
+
+    def delete_model(self, request, obj):
+        obj.soft_delete()
+        self.message_user(request, 'Configuration was soft deleted.', messages.SUCCESS)
+
+    def delete_queryset(self, request, queryset):
+        for obj in queryset:
+            obj.soft_delete()
+        self.message_user(request, f'{queryset.count()} configuration(s) were soft deleted.', messages.SUCCESS)
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
@@ -145,7 +188,6 @@ class ProductConfigurationAdmin(admin.ModelAdmin):
 admin.site.register(ProductConfiguration, ProductConfigurationAdmin)
 
 
-# Register Attribute and AttributeValue as standalone models for global management
 class AttributeValueInlineAdmin(admin.TabularInline):
     model = AttributeValue
     extra = 1
