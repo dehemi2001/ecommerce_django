@@ -122,15 +122,6 @@ class ProductAdmin(admin.ModelAdmin):
         self.message_user(request, f'{queryset.count()} product(s) were restored.', messages.SUCCESS)
     restore_selected.short_description = 'Restore selected products'
 
-    def delete_model(self, request, obj):
-        obj.soft_delete()
-        self.message_user(request, 'Product was soft deleted.', messages.SUCCESS)
-
-    def delete_queryset(self, request, queryset):
-        for obj in queryset:
-            obj.soft_delete()
-        self.message_user(request, f'{queryset.count()} product(s) were soft deleted.', messages.SUCCESS)
-
 
 admin.site.register(Product, ProductAdmin)
 
@@ -168,15 +159,6 @@ class ProductConfigurationAdmin(admin.ModelAdmin):
             obj.restore()
         self.message_user(request, f'{queryset.count()} configuration(s) were restored.', messages.SUCCESS)
     restore_selected.short_description = 'Restore selected configurations'
-
-    def delete_model(self, request, obj):
-        obj.soft_delete()
-        self.message_user(request, 'Configuration was soft deleted.', messages.SUCCESS)
-
-    def delete_queryset(self, request, queryset):
-        for obj in queryset:
-            obj.soft_delete()
-        self.message_user(request, f'{queryset.count()} configuration(s) were soft deleted.', messages.SUCCESS)
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)

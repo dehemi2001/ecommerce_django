@@ -25,15 +25,6 @@ class CategoryAdmin(admin.ModelAdmin):
         self.message_user(request, f'{queryset.count()} category(ies) were restored.', messages.SUCCESS)
     restore_selected.short_description = 'Restore selected categories'
 
-    def delete_model(self, request, obj):
-        obj.soft_delete()
-        self.message_user(request, 'Category was soft deleted.', messages.SUCCESS)
-
-    def delete_queryset(self, request, queryset):
-        for obj in queryset:
-            obj.soft_delete()
-        self.message_user(request, f'{queryset.count()} category(ies) were soft deleted.', messages.SUCCESS)
-
 
 admin.site.register(Category, CategoryAdmin)
 
