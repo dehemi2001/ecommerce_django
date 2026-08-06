@@ -1,15 +1,27 @@
 from django.shortcuts import render
 from store.models import Product, ReviewRating
+from category.models import Category
 from django.db.models import Avg, Q
 
+
 def home(request):
-    # Get top 8 products based on average rating of approved reviews
-    products = Product.objects.filter(is_available=True).annotate(
-        avg_rating=Avg('reviewrating__rating', filter=Q(reviewrating__status=True))
-    ).order_by('-avg_rating', '-created_date')[:8]
+    categories = Category.objects.filter(is_deleted=False)
+    categories_products = {}
+    for category in categories:
+        products = Product.objects.filter(
+            is_available=True,
+            category=category,
+        ).annotate(
+            avg_rating=Avg(
+                'reviewrating__rating',
+                filter=Q(reviewrating__status=True),
+            )
+        ).order_by('-avg_rating', '-created_date')[:4]
+        if products.exists():
+            categories_products[category] = products
 
     context = {
-        'products': products,
+        'categories_products': categories_products,
     }
     return render(request, 'home.html', context)
 
