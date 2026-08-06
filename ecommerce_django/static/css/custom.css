@@ -1,0 +1,172 @@
+/* Hide Radio button */
+.rate > input{
+    display: none;
+}
+
+.rate{
+    display: inline-block;
+    border: 0;
+}
+
+.rate > label{
+    float: right;
+}
+
+/* Showing the stars */
+.rate > label:before{
+    display: inline-block;
+    font-size: 1.1rem;
+    font-family: FontAwesome;
+    content: "\f005";
+    margin: 0;
+    padding: 0.3rem .2rem;
+    cursor: pointer;
+}
+
+/* Half star */
+.rate .half:before{
+    content: "\f089";
+    position: absolute;
+    padding-right: 0;
+}
+
+/* Click and hover */
+input:checked ~ label, label:hover ~ label{
+    color: #ffb503;
+}
+
+/* hover highlight */
+input:checked + label:hover, input:checked ~ label:hover, input:checked ~ label:hover ~ label,
+label:hover ~ input:checked ~ label{
+    color: #cc9000;
+}
+
+.rating-star i{
+    color: #ffb503;
+}
+
+ul.thumb{
+    margin:0 auto;
+    padding: 0;
+    float: left;
+}
+
+ul.thumb li{
+    list-style: none;
+    margin: 10px;
+}
+
+ul.thumb li img{
+    color: #333;
+}
+
+/* If the .brand-wrap has a fixed height or padding that constrains the text,
+   you might need to adjust it to allow the text to dictate the height. */
+/* Ensure brand-wrap aligns items nicely */
+.logo-text {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #007bff; /* blue theme */
+    font-family: 'Georgia', serif;
+    text-decoration: none;
+    line-height: 1;
+    white-space: nowrap; /* keep on one line */
+    transition: color 0.2s ease-in-out;
+}
+
+.logo-text:hover {
+    color: #0056b3;
+    text-decoration: none;
+}
+
+.brand-wrap {
+    display: inline-block;
+    text-decoration: none;
+}
+
+/* Category section on home page */
+.category-section {
+    margin-bottom: 40px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid #eee;
+}
+
+.category-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.category-image {
+    width: 120px;
+    height: 64px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background-color: #f1f3f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.category-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.category-image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #495057;
+    text-transform: uppercase;
+}
+
+.category-info {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-height: 48px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 8px 16px;
+}
+
+.category-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #212529;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.category-link {
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: #0d6efd;
+    text-decoration: none;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.category-link:hover {
+    color: #0a58ca;
+    text-decoration: underline;
+}
+
