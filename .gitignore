@@ -21,4 +21,5 @@ ENV/
 *.swp
 
 schema.sql
+db_dump.sql
 .kilo/
