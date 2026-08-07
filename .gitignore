@@ -22,3 +22,4 @@ ENV/
 schema.sql
 db_dump.sql
 .kilo/
+deployments.txt
