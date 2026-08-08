@@ -21,8 +21,8 @@
     display: none;
   }
 }
-@media all and (max-width: 768px) {
-  /* mobile devices */
+@media all and (max-width: 1024px) {
+  /* mobile and tablet devices */
   .mobile-block {
     display: block;
   }
@@ -41,6 +41,13 @@
   }
   .section-header .header-main .search {
     margin-bottom: 1rem;
+  }
+
+  .header-main .row > .col-lg-2,
+  .header-main .row > .col-lg.flex-grow-0 {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
   }
 
   .store-btn {
