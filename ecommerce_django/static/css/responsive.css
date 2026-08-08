@@ -21,7 +21,7 @@
     display: none;
   }
 }
-@media all and (max-width: 1024px) {
+@media all and (max-width: 1999px) {
   /* mobile and tablet devices */
   .mobile-block {
     display: block;
