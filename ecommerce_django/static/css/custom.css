@@ -48,7 +48,6 @@ label:hover ~ input:checked ~ label{
 ul.thumb{
     margin:0 auto;
     padding: 0;
-    float: left;
 }
 
 ul.thumb li{

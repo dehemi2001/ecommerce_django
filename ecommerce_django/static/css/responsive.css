@@ -91,6 +91,24 @@
   .navbar-expand .navbar-collapse {
     flex-direction: column;
   }
+
+  /* Product image mobile centering */
+  .gallery-wrap .img-big-wrap img {
+    height: auto;
+    max-height: 400px;
+  }
+
+  [class*=card-product] .img-wrap {
+    height: auto;
+    min-height: 180px;
+  }
+
+  [class*=card-product] .img-wrap img {
+    height: auto;
+    max-height: 180px;
+    width: 100%;
+    max-width: 100%;
+  }
 }
 
 /*# sourceMappingURL=responsive.css.map */

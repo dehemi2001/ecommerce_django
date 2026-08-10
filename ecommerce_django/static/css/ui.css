@@ -851,8 +851,8 @@ a[class*=card]:hover .title {
   max-width: 100%;
   width: auto;
   display: inline-block;
-  -o-object-fit: cover;
-     object-fit: cover;
+  object-fit: cover;
+  margin: 0 auto;
 }
 
 /* GRID STYLE PRODUCT ITEM */
@@ -1361,6 +1361,7 @@ a[class*=card]:hover .title {
 .gallery-wrap .img-big-wrap img {
   height: 450px;
   width: auto;
+  max-width: 100%;
   display: inline-block;
 }
 .gallery-wrap .thumbs-wrap {
