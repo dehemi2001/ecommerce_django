@@ -2,6 +2,7 @@ from django.shortcuts import get_object_or_404
 from django.template import context
 from django.http import HttpResponse
 from django.contrib.auth.tokens import default_token_generator
+from django.conf import settings
 from accounts.models import Account, UserProfile
 from orders.models import Order, OrderProduct
 from django.shortcuts import render, redirect
