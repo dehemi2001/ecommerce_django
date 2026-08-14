@@ -15,6 +15,31 @@ def _cart_id(request):
         cart = request.session.create()
     return cart
 
+def merge_cart(request, user):
+    try:
+        cart = Cart.objects.get(cart_id=_cart_id(request))
+        cart_items = CartItem.objects.filter(cart=cart)
+
+        for item in cart_items:
+            user_items = CartItem.objects.filter(product=item.product, user=user)
+            existing_item = None
+            for ui in user_items:
+                if sorted(list(ui.attribute_values.all()), key=lambda x: x.id) == \
+                   sorted(list(item.attribute_values.all()), key=lambda x: x.id):
+                    existing_item = ui
+                    break
+
+            if existing_item:
+                existing_item.quantity += item.quantity
+                existing_item.save()
+                item.delete()
+            else:
+                item.user = user
+                item.cart = None
+                item.save()
+    except Cart.DoesNotExist:
+        pass
+
 def add_cart(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     product_attribute_values = []
