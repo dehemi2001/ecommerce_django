@@ -7,6 +7,25 @@ html {
   font-size: 15px;
 }
 
+html, body {
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  margin: 0;
+}
+
+.main-content {
+  flex: 1 0 auto;
+}
+
+footer {
+  flex-shrink: 0;
+}
+
 /* ========================
 INCLUDE STYLES AND COMPONENTS
 ===================== */
