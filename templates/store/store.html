@@ -24,7 +24,7 @@
 
                 <form method="get" action="{{ request.path }}">
                 <div class="card">
-                    <a href="{{ request.path }}" class="btn btn-sm btn-outline-secondary btn-block mb-3">Reset Filters</a>
+                    <a href="{% url 'store' %}" class="btn btn-sm btn-outline-secondary btn-block mb-3">Reset Filters</a>
                     <article class="filter-group">
                         <header class="card-header">
                             <a href="#" data-toggle="collapse" data-target="#collapse_1" aria-expanded="true" class="">
