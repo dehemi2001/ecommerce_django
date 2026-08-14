@@ -2,6 +2,7 @@ from django.template import context
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from carts.models import CartItem
 from .forms import OrderForm
 import datetime
@@ -23,7 +24,7 @@ def finalize_order(request, order, payment):
     identical regardless of payment method.
     """
     # Move the cart items to Order Product table
-    cart_items = CartItem.objects.filter(user=request.user)
+    cart_items = CartItem.objects.filter(user=request.user, is_active=True)
 
     for item in cart_items:
         orderproduct = OrderProduct()
@@ -55,7 +56,7 @@ def finalize_order(request, order, payment):
             configuration.save()
 
     # Clear cart
-    CartItem.objects.filter(user=request.user).delete()
+    CartItem.objects.filter(user=request.user, is_active=True).delete()
 
     # Send the invoice as an HTML email (with a plain-text fallback)
     mail_subject = 'Thank you for your order!'
@@ -110,6 +111,7 @@ def finalize_order(request, order, payment):
         pass
 
 
+@login_required(login_url='login')
 def payments(request):
     body = json.loads(request.body)
     order = Order.objects.filter(user=request.user, is_ordered=False, order_number=body['orderID']).first()
@@ -133,7 +135,7 @@ def payments(request):
             payment_id = f"COD-{order.order_number}",
             payment_method = 'COD',
             amount_paid = order.order_total,
-            usd_amount = '',
+            usd_amount = None,
             status = 'Pending',
         )
         payment.save()
@@ -148,7 +150,7 @@ def payments(request):
             payment_id = body['transID'],
             payment_method = body['payment_method'],
             amount_paid = order.order_total,
-            usd_amount = body.get('usd_amount', ''),
+            usd_amount = body.get('usd_amount') or None,
             status = body['status'],
         )
         payment.save()
@@ -164,11 +166,12 @@ def payments(request):
     }
     return JsonResponse(data)
 
+@login_required(login_url='login')
 def place_order(request, total=0, quantity=0,):
     current_user = request.user
     
     # If the cart count is less than or equal to 0, then redirect back to shop
-    cart_items = CartItem.objects.filter(user=current_user)
+    cart_items = CartItem.objects.filter(user=current_user, is_active=True)
     cart_count = cart_items.count()
     if cart_count <= 0:
         return redirect('store')
@@ -218,9 +221,12 @@ def place_order(request, total=0, quantity=0,):
                 'paypal_amount': convert_lkr_to_usd(grand_total),
             }
             return render(request, 'orders/payments.html', context)
+        else:
+            return render(request, 'store/checkout.html', {**context, 'form': form})
     else:
         return redirect('checkout')
 
+@login_required(login_url='login')
 def order_complete(request):
     order_number = request.GET.get('order_number')
     transID = request.GET.get('payment_id')
