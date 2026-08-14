@@ -111,4 +111,30 @@
   }
 }
 
+@media (max-width: 768px) {
+  [class*="card-product"] {
+    overflow: hidden;
+  }
+
+  [class*="card-product"] .img-wrap {
+    height: auto !important;
+    min-height: unset !important;
+    max-height: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    overflow: hidden !important;
+  }
+
+  [class*="card-product"] .img-wrap img {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    object-fit: contain !important;
+    display: block !important;
+  }
+}
+
 /*# sourceMappingURL=responsive.css.map */
