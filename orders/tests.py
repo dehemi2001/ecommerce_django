@@ -5,6 +5,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from accounts.models import Account, UserProfile
 from store.models import Category, Product, ProductConfiguration, Attribute, AttributeValue
 from carts.models import CartItem
+from unittest.mock import patch
+from orders.models import Order, Payment, OrderProduct
 
 
 class CodOrderPlacementTest(TestCase):
@@ -70,7 +72,6 @@ class CodOrderPlacementTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'orders/payments.html')
 
-        from orders.models import Order
         order = Order.objects.filter(user=self.user, is_ordered=False).first()
         self.assertIsNotNone(order)
 
@@ -92,9 +93,93 @@ class CodOrderPlacementTest(TestCase):
         self.assertEqual(order.payment.payment_method, 'COD')
         self.assertEqual(order.payment.status, 'Pending')
 
-        from orders.models import OrderProduct
         self.assertTrue(OrderProduct.objects.filter(order=order).exists())
         self.assertEqual(CartItem.objects.filter(user=self.user, is_active=True).count(), 0)
 
         self.config.refresh_from_db()
         self.assertEqual(self.config.stock, 8)
+
+
+class StatusChangeEmailTest(TestCase):
+    def setUp(self):
+        self.user = Account.objects.create_user(
+            email='statususer@example.com',
+            username='statususer',
+            first_name='Status',
+            last_name='User',
+            password='testpass123',
+        )
+        self.user.phone_number = '+94771234567'
+        self.user.is_active = True
+        self.user.save()
+        UserProfile.objects.get_or_create(user=self.user)
+
+        self.category = Category.objects.create(category_name='Test Category', slug='test-category')
+        self.payment = Payment.objects.create(
+            user=self.user,
+            payment_id='TEST-123',
+            payment_method='COD',
+            amount_paid=Decimal('200.00'),
+            status='Pending',
+        )
+
+    def test_no_email_on_order_creation(self):
+        with patch('orders.signals.send_order_invoice_email') as mock_send:
+            Order.objects.create(
+                user=self.user,
+                first_name='Status',
+                last_name='User',
+                phone='+94771234567',
+                email='statususer@example.com',
+                address_line_1='123 Test St',
+                country='Sri Lanka',
+                state='Western',
+                city='Colombo',
+                order_total=Decimal('200.00'),
+            )
+            mock_send.assert_not_called()
+
+    def test_email_sent_on_status_change_accepted(self):
+        order = Order.objects.create(
+            user=self.user,
+            payment=self.payment,
+            first_name='Status',
+            last_name='User',
+            phone='+94771234567',
+            email='statususer@example.com',
+            address_line_1='123 Test St',
+            country='Sri Lanka',
+            state='Western',
+            city='Colombo',
+            order_total=Decimal('200.00'),
+            status='New',
+        )
+
+        with patch('orders.signals.send_order_invoice_email') as mock_send:
+            order.status = 'Accepted'
+            order.save()
+            mock_send.assert_called_once()
+            _, kwargs = mock_send.call_args
+            self.assertEqual(kwargs['mail_subject'], 'Your order has been accepted')
+            self.assertEqual(kwargs['user_email'], 'statususer@example.com')
+
+    def test_no_email_when_status_unchanged(self):
+        order = Order.objects.create(
+            user=self.user,
+            payment=self.payment,
+            first_name='Status',
+            last_name='User',
+            phone='+94771234567',
+            email='statususer@example.com',
+            address_line_1='123 Test St',
+            country='Sri Lanka',
+            state='Western',
+            city='Colombo',
+            order_total=Decimal('200.00'),
+            status='New',
+        )
+
+        with patch('orders.signals.send_order_invoice_email') as mock_send:
+            order.is_ordered = True
+            order.save()
+            mock_send.assert_not_called()

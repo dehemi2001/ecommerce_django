@@ -12,8 +12,8 @@ from .currency import convert_lkr_to_usd
 import json
 from store.models import Product, ProductConfiguration
 from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
-from company.models import Company
+
+from .utils import send_order_invoice_email
 
 # Create your views here.
 
@@ -58,57 +58,12 @@ def finalize_order(request, order, payment):
     # Clear cart
     CartItem.objects.filter(user=request.user, is_active=True).delete()
 
-    # Send the invoice as an HTML email (with a plain-text fallback)
-    mail_subject = 'Thank you for your order!'
-
-    ordered_products = OrderProduct.objects.filter(order=order)
-    subtotal = sum(item.product_price * item.quantity for item in ordered_products)
-
-    company = Company.objects.first()
-    logo_cid = None
-    mime_logo = None
-    if company and company.logo:
-        try:
-            import os
-            from email.mime.image import MIMEImage
-            logo_path = company.logo.path
-            with open(logo_path, 'rb') as f:
-                ext = os.path.splitext(logo_path)[1].lower().lstrip('.')
-                subtype = 'jpeg' if ext == 'jpg' else (ext or 'png')
-                mime_logo = MIMEImage(f.read(), _subtype=subtype)
-            mime_logo.add_header('Content-ID', '<logo>')
-            mime_logo.add_header('Content-Disposition', 'inline', filename='logo.png')
-            logo_cid = 'logo'
-        except (FileNotFoundError, OSError):
-            logo_cid = None
-
-    html_message = render_to_string('orders/order_invoice_email.html', {
-        'order': order,
-        'ordered_products': ordered_products,
-        'subtotal': subtotal,
-        'payment': payment,
-        'company': company,
-        'logo_cid': logo_cid,
-    }, request=request)
-
-    text_message = (
-        f"Hi {order.first_name},\n\n"
-        f"Thank you for your order!\n\n"
-        f"Order Number: {order.order_number}\n"
-        f"Grand Total: LKR {order.order_total}\n"
+    send_order_invoice_email(
+        order=order,
+        payment=payment,
+        user_email=request.user.email,
+        mail_subject='Thank you for your order!',
     )
-
-    try:
-        to_email = request.user.email
-        from_email = f"{company.name} <{settings.EMAIL_HOST_USER}>" if company else settings.EMAIL_HOST_USER
-        email = EmailMultiAlternatives(mail_subject, text_message, from_email, to=[to_email])
-        if mime_logo is not None:
-            email.attach(mime_logo)
-        email.attach_alternative(html_message, "text/html")
-        email.send()
-    except Exception:
-        # Don't fail the order just because the confirmation email couldn't be sent.
-        pass
 
 
 @login_required(login_url='login')
