@@ -11,7 +11,7 @@
 <div class="container mx-auto alert alert-info text-center" role="alert" style="max-width: 1024px; margin-top:100px;">
 Thank you for registering with us. We have sent you a verification email to your email address [{{ request.GET.email }}].
 <br><br>
-Already verified? <a href="{%  url 'login' %}">Login</a>
+Already verified? <a href="{% url 'login' %}?next={{ request.GET.next|urlencode }}">Login</a>
 </div>
     
 {% else %}
@@ -22,6 +22,7 @@ Already verified? <a href="{%  url 'login' %}">Login</a>
       {% include 'includes/alerts.html' %}
       <form action="{% url 'login' %}" method="POST">
         {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.GET.next|default:'' }}">
           <div class="form-group">
 			 <input type="email" class="form-control" placeholder="Email Address" name="email">
           </div> <!-- form-group// -->
@@ -30,8 +31,8 @@ Already verified? <a href="{%  url 'login' %}">Login</a>
           </div> <!-- form-group// -->
           
           <div class="form-group">
-          	<a href="#" class="float-right">Forgot password?</a> 
-           
+           	<a href="#" class="float-right">Forgot password?</a> 
+            
           </div> <!-- form-group form-check .// -->
           <div class="form-group">
               <button type="submit" class="btn btn-primary btn-block"> Login  </button>
@@ -40,7 +41,7 @@ Already verified? <a href="{%  url 'login' %}">Login</a>
       </div> <!-- card-body.// -->
     </div> <!-- card .// -->
 
-     <p class="text-center mt-4">Don't have account? <a href="{% url 'register' %}">Sign up</a></p>
+     <p class="text-center mt-4">Don't have account? <a href="{% url 'register' %}?next={{ request.GET.next|urlencode }}">Sign up</a></p>
      <br><br>
 <!-- ============================ COMPONENT LOGIN  END.// ================================= -->
 {% endif %}

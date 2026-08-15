@@ -9,8 +9,9 @@
       <article class="card-body">
 		{% include 'includes/alerts.html' %}
 		<header class="mb-4"><h4 class="card-title">Sign up</h4></header>
-		<form action="{% url 'register' %}" method="POST">
+ 		<form action="{% url 'register' %}" method="POST">
             {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.GET.next|default:'' }}">
 				<div class="form-row">
 					<div class="col form-group">
 						<label>First name</label>

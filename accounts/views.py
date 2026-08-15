@@ -20,7 +20,6 @@ from django.core.mail import EmailMessage
 
 from carts.views import _cart_id, merge_cart
 from company.models import Company
-import requests
 
 # Create your views here.
 
@@ -44,7 +43,6 @@ def register(request):
             user.phone_number = phone_number
             user.save()
 
-            # USER ACTIVATION
             current_site = get_current_site(request)
             mail_subject = 'Please activate your account'
             message = render_to_string('accounts/account_verification_email.html', {
@@ -60,8 +58,11 @@ def register(request):
             send_email = EmailMessage(mail_subject, message, from_email, to=[to_email])
             send_email.send()
             
-            #messages.success(request, 'Thank you for registering with us. We have sent you a verification email to your email address. Please verify it.')
-            return redirect('/accounts/login/?command=verification&email='+email)
+            next_url = request.POST.get('next') or request.GET.get('next') or ''
+            redirect_url = '/accounts/login/?command=verification&email=' + email
+            if next_url:
+                redirect_url += '&next=' + next_url
+            return redirect(redirect_url)
     else:
         form = RegistrationForm()
     context = {
@@ -78,21 +79,18 @@ def login(request):
             merge_cart(request, user)
             auth.login(request, user)
             messages.success(request, 'You are now logged in.')
-            url = request.META.get('HTTP_REFERER')
-            try:
-                query = requests.utils.urlparse(url).query
-                # next=/cart/checkout/
-                params = dict(x.split('=') for x in query.split('&'))
-                if 'next' in params:
-                    nextPage = params['next']
-                    return redirect(nextPage)
-                
-            except:
-                return redirect('dashboard')
+            next_url = request.POST.get('next') or request.session.get('next')
+            if next_url:
+                request.session.pop('next', None)
+                return redirect(next_url)
+            return redirect('dashboard')
         else:
             messages.error(request, 'Invalid login credentials.')
             return redirect('login')
-            
+    
+    if request.method == 'GET' and request.GET.get('next'):
+        request.session['next'] = request.GET.get('next')
+    
     return render(request, 'accounts/login.html')
 
 @login_required(login_url='login')
