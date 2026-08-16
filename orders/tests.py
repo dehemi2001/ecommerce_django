@@ -2,6 +2,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from decimal import Decimal
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.template.loader import render_to_string
 from accounts.models import Account, UserProfile
 from store.models import Category, Product, ProductConfiguration, Attribute, AttributeValue
 from carts.models import CartItem
@@ -183,3 +184,36 @@ class StatusChangeEmailTest(TestCase):
             order.is_ordered = True
             order.save()
             mock_send.assert_not_called()
+
+    def test_invoice_status_display(self):
+        status_map = {
+            'New': 'Pending',
+            'Accepted': 'Accepted',
+            'Completed': 'Completed',
+            'Cancelled': 'Cancelled',
+        }
+        for order_status, expected_display in status_map.items():
+            order = Order.objects.create(
+                user=self.user,
+                payment=self.payment,
+                first_name='Status',
+                last_name='User',
+                phone='+94771234567',
+                email='statususer@example.com',
+                address_line_1='123 Test St',
+                country='Sri Lanka',
+                state='Western',
+                city='Colombo',
+                order_total=Decimal('200.00'),
+                status=order_status,
+            )
+            html = render_to_string('orders/order_invoice_email.html', {
+                'order': order,
+                'ordered_products': order.orderproduct_set.all(),
+                'subtotal': Decimal('200.00'),
+                'payment': self.payment,
+                'company': None,
+                'logo_cid': None,
+                'status': expected_display,
+            })
+            self.assertIn(expected_display, html)

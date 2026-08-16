@@ -4,6 +4,13 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from company.models import Company
 
+ORDER_STATUS_DISPLAY = {
+    'New': 'Pending',
+    'Accepted': 'Accepted',
+    'Completed': 'Completed',
+    'Cancelled': 'Cancelled',
+}
+
 
 def send_order_invoice_email(order, payment, user_email=None, mail_subject=''):
     if user_email is None:
@@ -37,6 +44,7 @@ def send_order_invoice_email(order, payment, user_email=None, mail_subject=''):
         'payment': payment,
         'company': company,
         'logo_cid': logo_cid,
+        'status': ORDER_STATUS_DISPLAY.get(order.status, order.status),
     })
 
     text_message = (
